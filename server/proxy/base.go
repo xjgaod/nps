@@ -86,7 +86,7 @@ func (s *BaseServer) CheckFlowAndConnNum(client *file.Client) error {
 //create a new connection and start bytes copying
 func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, rb []byte, tp string, f func(), flow *file.Flow, localProxy bool) error {
 	link := conn.NewLink(tp, addr, client.Cnf.Crypt, client.Cnf.Compress, c.Conn.RemoteAddr().String(), localProxy)
-	if target, err := s.bridge.SendLinkInfo(client.Id, link, s.task); err != nil {
+	/*if target, err := s.bridge.SendLinkInfo(client.Id, link, s.task); err != nil {
 		logs.Warn("get connection from client id %d  error %s", client.Id, err.Error())
 		c.Close()
 		return err
@@ -95,6 +95,19 @@ func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, 
 			f()
 		}
 		conn.CopyWaitGroup(target, c.Conn, link.Crypt, link.Compress, client.Rate, flow, true, rb)
+	}*/
+
+	target, err := net.Dial("tcp", addr)
+	if err != nil {
+		logs.Warn("connect to remote address error %s", err.Error())
+		c.Close()
+		return err
+
 	}
+	if f != nil {
+		f()
+	}
+	conn.CopyWaitGroup(target, c.Conn, link.Crypt, link.Compress, client.Rate, flow, true, rb)
+
 	return nil
 }
