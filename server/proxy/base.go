@@ -98,7 +98,7 @@ func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, 
 	//	}
 
 	logs.Warn("tp is  %s", tp)
-	target, err := net.Dial("tcp", addr)
+	target, err := net.Dial(tp, addr)
 	if err != nil {
 		logs.Warn("connect to remote address error %s", err.Error())
 		c.Close()
