@@ -446,7 +446,6 @@
         legend: {
             orient: 'vertical',
             left: 'left',
-<!--            data: ['tcp隧道数量', 'socks5隧道数量', 'http代理隧道数量', 'udp隧道数量', '域名解析数量', '私密代理数量', 'p2p数量']-->
 			data: ['socks5隧道数量']
         },
         series: [
@@ -456,13 +455,7 @@
                 radius: '55%',
                 center: ['50%', '60%'],
                 data: [
-                   <!-- {value:{{.data.tcpC}}, name: 'tcp隧道数量'},-->
                     {value:{{.data.socks5Count}}, name: 'socks5隧道数量'},
-                   <!-- {value:{{.data.httpProxyCount}}, name: 'http代理隧道数量'},
-                    {value:{{.data.udpCount}}, name: 'udp隧道数量'},
-                    {value:{{.data.hostCount}}, name: '域名解析数量'},
-                    {value:{{.data.secretCount}}, name: '私密代理数量'},
-                    {value:{{.data.p2pCount}}, name: 'p2p数量'},-->
                 ],
                 itemStyle: {
                     emphasis: {
