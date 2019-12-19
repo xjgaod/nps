@@ -7,7 +7,6 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/cnlh/nps/bridge"
 	"github.com/cnlh/nps/lib/common"
-	"github.com/cnlh/nps/lib/conn"
 	"github.com/cnlh/nps/lib/file"
 )
 
@@ -54,7 +53,7 @@ func (s *UdpModeServer) process(addr *net.UDPAddr, data []byte) {
 		return
 	}
 	defer s.task.Client.AddConn()
-	link := conn.NewLink(common.CONN_UDP, s.task.Target.TargetStr, s.task.Client.Cnf.Crypt, s.task.Client.Cnf.Compress, addr.String(), s.task.Target.LocalProxy)
+	//link := conn.NewLink(common.CONN_UDP, s.task.Target.TargetStr, s.task.Client.Cnf.Crypt, s.task.Client.Cnf.Compress, addr.String(), s.task.Target.LocalProxy)
 
 	target, err := net.Dial("udp", s.task.Target.TargetStr)
 	if err != nil {
