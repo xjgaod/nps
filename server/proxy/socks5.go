@@ -254,7 +254,9 @@ func (s *Sock5ModeServer) handleUDP(c net.Conn) {
 		defer c.Close()
 		for {
 			if err := binary.Read(target, binary.LittleEndian, &l); err != nil || l >= common.PoolSizeUdp || l <= 0 {
-				logs.Warn("read len bytes error", err.Error())
+				if err != nil {
+					logs.Warn("read len bytes error", err.Error())
+				}
 				return
 			}
 			binary.Read(target, binary.LittleEndian, b[:l])
