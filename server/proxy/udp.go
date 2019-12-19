@@ -55,8 +55,12 @@ func (s *UdpModeServer) process(addr *net.UDPAddr, data []byte) {
 	}
 	defer s.task.Client.AddConn()
 	link := conn.NewLink(common.CONN_UDP, s.task.Target.TargetStr, s.task.Client.Cnf.Crypt, s.task.Client.Cnf.Compress, addr.String(), s.task.Target.LocalProxy)
-	if target, err := s.bridge.SendLinkInfo(s.task.Client.Id, link, s.task); err != nil {
-		return
+
+	target, err := net.Dial("udp", s.task.Target.TargetStr)
+	if err != nil {
+		logs.Warn("socks5 upd connect to remote address error %s", err.Error())
+		c.Close()
+		return err
 	} else {
 		s.task.Flow.Add(int64(len(data)), 0)
 		buf := common.BufPoolUdp.Get().([]byte)
