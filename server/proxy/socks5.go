@@ -200,7 +200,7 @@ func (s *Sock5ModeServer) handleUDP(c net.Conn) {
 	//读取端口
 	var port uint16
 	binary.Read(c, binary.BigEndian, &port)
-	logs.Warn(host + ":" + strconv.FormatUint(port, 10))
+	logs.Warn(host + ":" + strconv.Itoa(int(port)))
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
 	if err != nil {
 		logs.Error("build local reply addr error", err)
@@ -218,7 +218,7 @@ func (s *Sock5ModeServer) handleUDP(c net.Conn) {
 	// new a tunnel to client
 	//	link := conn.NewLink("udp5", "", s.task.Client.Cnf.Crypt, s.task.Client.Cnf.Compress, c.RemoteAddr().String(), false)
 	//	target, err := s.bridge.SendLinkInfo(s.task.Client.Id, link, s.task)
-	target, err := net.Dial("udp", host+":"+strconv.FormatUint(port, 10))
+	target, err := net.Dial("udp", host+":"+strconv.Itoa(int(port)))
 	if err != nil {
 		logs.Warn("get connection from client id %d  error %s", s.task.Client.Id, err.Error())
 		return
