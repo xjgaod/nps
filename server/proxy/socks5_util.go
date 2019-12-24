@@ -339,12 +339,11 @@ func (s *Sock5ModeServer) GetRequest(c net.Conn) (*Request, error) {
 		return nil, err
 	}
 	var supported bool
-	for _, c := range s.SupportedCommands {
-		if r.Cmd == c {
-			supported = true
-			break
-		}
+
+	if r.Cmd == CmdConnect || r.Cmd == CmdUDP {
+		supported = true
 	}
+
 	log.Println("sss", r)
 	if !supported {
 		var p *Reply
