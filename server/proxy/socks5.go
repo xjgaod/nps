@@ -70,7 +70,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 		c.Close()
 		return
 	}
-
+	logs.Warn("header", header[1])
 	switch header[1] {
 	case connectMethod:
 		s.handleConnect(c)
