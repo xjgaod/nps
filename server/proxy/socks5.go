@@ -4,14 +4,23 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/astaxie/beego/logs"
 	"github.com/cnlh/nps/lib/common"
 	"github.com/cnlh/nps/lib/conn"
 	"github.com/cnlh/nps/lib/file"
+	cache "github.com/patrickmn/go-cache"
 )
+
+// UDPExchange used to store client address and remote connection
+type UDPExchange struct {
+	ClientAddr *net.UDPAddr
+	RemoteConn *net.UDPConn
+}
 
 const (
 	ipV4            = 1
@@ -48,7 +57,27 @@ const (
 
 type Sock5ModeServer struct {
 	BaseServer
-	listener net.Listener
+	SupportedCommands []byte
+	listener          net.Listener
+	TCPAddr           *net.TCPAddr
+	UDPAddr           *net.UDPAddr
+	ServerAddr        *net.UDPAddr
+	TCPListen         *net.TCPListener
+	UDPConn           *net.UDPConn
+	UDPExchanges      *cache.Cache
+	TCPDeadline       int
+	TCPTimeout        int
+	UDPDeadline       int
+	UDPSessionTime    int // If client does't send address, use this fixed time
+	Handle            Handler
+	TCPUDPAssociate   *cache.Cache
+}
+type Handler interface {
+	// Request has not been replied yet
+	handleUDP(*Sock5ModeServer, net.Conn, *Request) error
+	UDPHandle(*Sock5ModeServer, *net.UDPAddr, *Datagram) error
+}
+type DefaultHandle struct {
 }
 
 //req
@@ -61,23 +90,18 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 		| 1  |  1  | X'00' |  1   | Variable |    2     |
 		+----+-----+-------+------+----------+----------+
 	*/
-	header := make([]byte, 3)
-
-	_, err := io.ReadFull(c, header)
-
+	r, err := s.GetRequest(c)
 	if err != nil {
-		logs.Warn("illegal request", err)
-		c.Close()
+		log.Println(err)
 		return
 	}
-	logs.Warn("header", header[1])
-	switch header[1] {
+	switch r.Cmd {
 	case connectMethod:
 		s.handleConnect(c)
 	case bindMethod:
 		s.handleBind(c)
 	case associateMethod:
-		s.handleUDP(c)
+		s.Handle.handleUDP(s, c, r)
 	default:
 		s.sendReply(c, commandNotSupported)
 		c.Close()
@@ -173,113 +197,24 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 }
 
-func (s *Sock5ModeServer) handleUDP(c net.Conn) {
-	defer c.Close()
-	addrType := make([]byte, 1)
-	c.Read(addrType)
-	var host string
-	switch addrType[0] {
-	case ipV4:
-		ipv4 := make(net.IP, net.IPv4len)
-		c.Read(ipv4)
-		host = ipv4.String()
-	case ipV6:
-		ipv6 := make(net.IP, net.IPv6len)
-		c.Read(ipv6)
-		host = ipv6.String()
-	case domainName:
-		var domainLen uint8
-		binary.Read(c, binary.BigEndian, &domainLen)
-		domain := make([]byte, domainLen)
-		c.Read(domain)
-		host = string(domain)
-	default:
-		s.sendReply(c, addrTypeNotSupported)
-		return
-	}
-	//读取端口
-	var port uint16
-	binary.Read(c, binary.BigEndian, &port)
-	logs.Warn(host + ":" + strconv.Itoa(int(port)))
+func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
+	caddr, err := r.UDP(c, replyAddr)
 	if err != nil {
-		logs.Error("build local reply addr error", err)
 		return
 	}
-	reply, err := net.ListenUDP("udp", replyAddr)
+	_, p, err := net.SplitHostPort(caddr.String())
 	if err != nil {
-		s.sendReply(c, addrTypeNotSupported)
-		logs.Error("listen local reply udp port error")
 		return
 	}
-	// reply the local addr
-	s.sendUdpReply(c, reply, succeeded, common.GetServerIpByClientIp(c.RemoteAddr().(*net.TCPAddr).IP))
-	defer reply.Close()
-	// new a tunnel to client
-	//	link := conn.NewLink("udp5", "", s.task.Client.Cnf.Crypt, s.task.Client.Cnf.Compress, c.RemoteAddr().String(), false)
-	//	target, err := s.bridge.SendLinkInfo(s.task.Client.Id, link, s.task)
-	target, err := net.Dial("udp", host+":"+strconv.Itoa(int(port)))
-	if err != nil {
-		logs.Warn("get connection from client id %d  error %s", s.task.Client.Id, err.Error())
+	if p == "0" {
+		time.Sleep(time.Duration(s.UDPSessionTime) * time.Second)
 		return
 	}
-
-	var clientAddr net.Addr
-	// copy buffer
-	go func() {
-		b := common.BufPoolUdp.Get().([]byte)
-		defer common.BufPoolUdp.Put(b)
-		defer c.Close()
-
-		for {
-			n, laddr, err := reply.ReadFrom(b)
-			if err != nil {
-				logs.Error("read data from %s err %s", reply.LocalAddr().String(), err.Error())
-				return
-			}
-			if clientAddr == nil {
-				clientAddr = laddr
-			}
-			if _, err := target.Write(b[:n]); err != nil {
-				logs.Error("write data to client error", err.Error())
-				return
-			}
-		}
-	}()
-
-	go func() {
-		var l int32
-		b := common.BufPoolUdp.Get().([]byte)
-		defer common.BufPoolUdp.Put(b)
-		defer c.Close()
-		for {
-			if err := binary.Read(target, binary.LittleEndian, &l); err != nil || l >= common.PoolSizeUdp || l <= 0 {
-				if err != nil {
-					logs.Warn("read len bytes error", err.Error())
-				}
-				return
-			}
-			binary.Read(target, binary.LittleEndian, b[:l])
-			if err != nil {
-				logs.Warn("read data form client error", err.Error())
-				return
-			}
-			if _, err := reply.WriteTo(b[:l], clientAddr); err != nil {
-				logs.Warn("write data to user ", err.Error())
-				return
-			}
-		}
-	}()
-
-	b := common.BufPoolUdp.Get().([]byte)
-	defer common.BufPoolUdp.Put(b)
-	for {
-		_, err := c.Read(b)
-		if err != nil {
-			c.Close()
-			return
-		}
-	}
+	ch := make(chan byte)
+	s.TCPUDPAssociate.Set(caddr.String(), ch, cache.DefaultExpiration)
+	<-ch
+	return
 }
 
 //new conn
@@ -379,6 +314,10 @@ func (s *Sock5ModeServer) Start() error {
 		}
 		logs.Trace("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
 		s.handleConn(c)
+		errch := make(chan error)
+		go func() {
+			errch <- s.RunUDPServer()
+		}()
 		s.task.Client.AddConn()
 	}, &s.listener)
 }
@@ -394,4 +333,138 @@ func NewSock5ModeServer(bridge NetBridge, task *file.Tunnel) *Sock5ModeServer {
 //close
 func (s *Sock5ModeServer) Close() error {
 	return s.listener.Close()
+}
+
+//start this udp server when main server start
+func (s *Sock5ModeServer) RunUDPServer() error {
+	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
+	if err != nil {
+		logs.Error("build local reply addr error", err)
+		return err
+	}
+	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
+	if err != nil {
+		return err
+	}
+	defer s.UDPConn.Close()
+	for {
+		b := make([]byte, 65536)
+		n, addr, err := s.UDPConn.ReadFromUDP(b)
+		if err != nil {
+			return err
+		}
+		go func(addr *net.UDPAddr, b []byte) {
+			d, err := NewDatagramFromBytes(b)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if d.Frag != 0x00 {
+				log.Println("Ignore frag", d.Frag)
+				return
+			}
+			if err := s.Handle.UDPHandle(s, addr, d); err != nil {
+				log.Println(err)
+				return
+			}
+		}(addr, b[0:n])
+	}
+	return nil
+}
+
+// UDPHandle auto handle packet. You may prefer to do yourself.
+func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
+	send := func(ue *UDPExchange, data []byte) error {
+		_, err := ue.RemoteConn.Write(data)
+		if err != nil {
+			return err
+		}
+		//		if Debug {
+		//			log.Printf("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
+		//		}
+		return nil
+	}
+
+	var ue *UDPExchange
+	iue, ok := s.UDPExchanges.Get(addr.String())
+	if ok {
+		ue = iue.(*UDPExchange)
+		return send(ue, d.Data)
+	}
+
+	//	if Debug {
+	//		log.Printf("Call udp: %#v\n", d.Address())
+	//	}
+	c, err := dial.Dial("udp", d.Address())
+	if err != nil {
+		v, ok := s.TCPUDPAssociate.Get(addr.String())
+		if ok {
+			ch := v.(chan byte)
+			ch <- 0x00
+			s.TCPUDPAssociate.Delete(addr.String())
+		}
+		return err
+	}
+	// A UDP association terminates when the TCP connection that the UDP
+	// ASSOCIATE request arrived on terminates.
+	rc := c.(*net.UDPConn)
+	ue = &UDPExchange{
+		ClientAddr: addr,
+		RemoteConn: rc,
+	}
+	//	if Debug {
+	//		log.Printf("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
+	//	}
+	if err := send(ue, d.Data); err != nil {
+		v, ok := s.TCPUDPAssociate.Get(ue.ClientAddr.String())
+		if ok {
+			ch := v.(chan byte)
+			ch <- 0x00
+			s.TCPUDPAssociate.Delete(ue.ClientAddr.String())
+		}
+		ue.RemoteConn.Close()
+		return err
+	}
+	s.UDPExchanges.Set(ue.ClientAddr.String(), ue, cache.DefaultExpiration)
+	go func(ue *UDPExchange) {
+		defer func() {
+			v, ok := s.TCPUDPAssociate.Get(ue.ClientAddr.String())
+			if ok {
+				ch := v.(chan byte)
+				ch <- 0x00
+				s.TCPUDPAssociate.Delete(ue.ClientAddr.String())
+			}
+			s.UDPExchanges.Delete(ue.ClientAddr.String())
+			ue.RemoteConn.Close()
+		}()
+		var b [65536]byte
+		for {
+			if s.UDPDeadline != 0 {
+				if err := ue.RemoteConn.SetDeadline(time.Now().Add(time.Duration(s.UDPDeadline) * time.Second)); err != nil {
+					log.Println(err)
+					break
+				}
+			}
+			n, err := ue.RemoteConn.Read(b[:])
+			if err != nil {
+				break
+			}
+			//			if Debug {
+			//				log.Printf("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
+			//			}
+			a, addr, port, err := ParseAddress(ue.ClientAddr.String())
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			d1 := NewDatagram(a, addr, port, b[0:n])
+			if _, err := s.UDPConn.WriteToUDP(d1.Bytes(), ue.ClientAddr); err != nil {
+				break
+			}
+			//			if Debug {
+			//				log.Printf("Sent Datagram. client: %#v server: %#v remote: %#v data: %#v %#v %#v %#v %#v %#v datagram address: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), d1.Rsv, d1.Frag, d1.Atyp, d1.DstAddr, d1.DstPort, d1.Data, d1.Address())
+			//			}
+		}
+	}(ue)
+	return nil
 }
