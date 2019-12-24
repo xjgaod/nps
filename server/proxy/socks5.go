@@ -57,7 +57,7 @@ const (
 
 type Sock5ModeServer struct {
 	BaseServer
-	SupportedCommands []byte
+	SupportedCommands: []byte{CmdConnect, CmdUDP},
 	listener          net.Listener
 	TCPAddr           *net.TCPAddr
 	UDPAddr           *net.UDPAddr
