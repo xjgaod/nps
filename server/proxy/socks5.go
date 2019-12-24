@@ -95,6 +95,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 		log.Println(err)
 		return
 	}
+	log.Println(r.Cmd)
 	switch r.Cmd {
 	case connectMethod:
 		s.handleConnect(c)
