@@ -306,6 +306,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 
 //start
 func (s *Sock5ModeServer) Start() error {
+	s.RunUDPServer()
 	return conn.NewTcpListenerAndProcess(s.task.ServerIp+":"+strconv.Itoa(s.task.Port), func(c net.Conn) {
 		if err := s.CheckFlowAndConnNum(s.task.Client); err != nil {
 			logs.Warn("client id %d, task id %d, error %s, when socks5 connection", s.task.Client.Id, s.task.Id, err.Error())
@@ -314,10 +315,6 @@ func (s *Sock5ModeServer) Start() error {
 		}
 		logs.Trace("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
 		s.handleConn(c)
-		errch := make(chan error)
-		go func() {
-			errch <- s.RunUDPServer()
-		}()
 		s.task.Client.AddConn()
 	}, &s.listener)
 }
@@ -336,22 +333,22 @@ func (s *Sock5ModeServer) Close() error {
 }
 
 //start this udp server when main server start
-func (s *Sock5ModeServer) RunUDPServer() error {
+func (s *Sock5ModeServer) RunUDPServer() {
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
 	if err != nil {
 		logs.Error("build local reply addr error", err)
-		return err
+		return
 	}
 	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
 	if err != nil {
-		return err
+		return
 	}
 	defer s.UDPConn.Close()
 	for {
 		b := make([]byte, 65536)
 		n, addr, err := s.UDPConn.ReadFromUDP(b)
 		if err != nil {
-			return err
+			return
 		}
 		go func(addr *net.UDPAddr, b []byte) {
 			d, err := NewDatagramFromBytes(b)
@@ -369,7 +366,6 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 			}
 		}(addr, b[0:n])
 	}
-	return nil
 }
 
 // UDPHandle auto handle packet. You may prefer to do yourself.
