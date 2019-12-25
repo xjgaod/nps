@@ -77,8 +77,6 @@ type Handler interface {
 	handleUDP(*Sock5ModeServer, net.Conn, *Request) error
 	UDPHandle(*Sock5ModeServer, *net.UDPAddr, *Datagram) error
 }
-type DefaultHandle struct {
-}
 
 //req
 func (s *Sock5ModeServer) handleRequest(c net.Conn) {
@@ -198,7 +196,7 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 }
 
-func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
+func (h *Handler) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	log.Printf("handleUDP begin")
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
 	caddr, err := r.UDP(c, replyAddr)
@@ -375,7 +373,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 }
 
 // UDPHandle auto handle packet. You may prefer to do yourself.
-func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
+func (h *Handler) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
 	send := func(ue *UDPExchange, data []byte) error {
 		_, err := ue.RemoteConn.Write(data)
 		if err != nil {
