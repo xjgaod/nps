@@ -341,6 +341,7 @@ func (s *Sock5ModeServer) Close() error {
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
+	log.Printf("replyAddr is", replyAddr.String())
 	if err != nil {
 		logs.Error("build local reply addr error", err)
 		return err
@@ -382,9 +383,9 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		if err != nil {
 			return err
 		}
-		//		if Debug {
-		//			log.Printf("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
-		//		}
+
+		log.Printf("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
+
 		return nil
 	}
 
@@ -395,9 +396,8 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		return send(ue, d.Data)
 	}
 
-	//	if Debug {
-	//		log.Printf("Call udp: %#v\n", d.Address())
-	//	}
+	log.Printf("Call udp: %#v\n", d.Address())
+
 	c, err := dial.Dial("udp", d.Address())
 	if err != nil {
 		v, ok := s.TCPUDPAssociate.Get(addr.String())
@@ -415,9 +415,9 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		ClientAddr: addr,
 		RemoteConn: rc,
 	}
-	//	if Debug {
-	//		log.Printf("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
-	//	}
+
+	log.Printf("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
+
 	if err := send(ue, d.Data); err != nil {
 		v, ok := s.TCPUDPAssociate.Get(ue.ClientAddr.String())
 		if ok {
