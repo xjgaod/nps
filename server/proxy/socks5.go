@@ -348,7 +348,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 	}
 	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
 	if err != nil {
-		log.Printf(err)
+		log.Println(err)
 		return err
 	}
 	defer s.UDPConn.Close()
