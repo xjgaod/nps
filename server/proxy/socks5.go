@@ -74,7 +74,7 @@ type Sock5ModeServer struct {
 }
 type Handler interface {
 	// Request has not been replied yet
-	handleUDP(*Sock5ModeServer, net.Conn, *Request) error
+	handleUDP(*Sock5ModeServer, net.Conn, *Request)
 	UDPHandle(*Sock5ModeServer, *net.UDPAddr, *Datagram) error
 }
 type DefaultHandle struct {
