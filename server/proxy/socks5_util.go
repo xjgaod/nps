@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"net"
 	"strconv"
 )
@@ -344,7 +343,6 @@ func (s *Sock5ModeServer) GetRequest(c net.Conn) (*Request, error) {
 		supported = true
 	}
 
-	log.Println("sss", r)
 	if !supported {
 		var p *Reply
 		if r.Atyp == ATYPIPv4 || r.Atyp == ATYPDomain {
