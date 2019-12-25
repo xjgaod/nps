@@ -202,6 +202,7 @@ func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	log.Printf("s handleUDP begin")
 	replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
 	caddr, err := r.UDP(c, replyAddr)
+	log.Printf("ssss===", caddr)
 	if err != nil {
 		return
 	}
@@ -341,7 +342,7 @@ func (s *Sock5ModeServer) Close() error {
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
 	replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
-	log.Printf("replyAddr is", replyAddr.IP)
+	log.Printf("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
 		return err
@@ -356,6 +357,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 		b := make([]byte, 65536)
 		n, addr, err := s.UDPConn.ReadFromUDP(b)
 		if err != nil {
+			logs.Error("err", s.UDPConn, err)
 			return err
 		}
 		go func(addr *net.UDPAddr, b []byte) {
