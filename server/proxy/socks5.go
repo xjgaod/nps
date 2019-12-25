@@ -310,6 +310,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 //start
 func (s *Sock5ModeServer) Start() error {
 	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
+	s.UDPExchanges = cache.New(cache.NoExpiration, cache.NoExpiration)
 	errch := make(chan error)
 	go func() {
 		errch <- s.RunUDPServer()
