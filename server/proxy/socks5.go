@@ -362,7 +362,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 			return err
 		}
 		go func(addr *net.UDPAddr, b []byte) {
-			log.Println("=================begin)
+			log.Println("=================begin")
 			d, err := NewDatagramFromBytes(b)
 			if err != nil {
 				log.Println(err)
