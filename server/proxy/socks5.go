@@ -77,6 +77,8 @@ type Handler interface {
 	handleUDP(*Sock5ModeServer, net.Conn, *Request) error
 	UDPHandle(*Sock5ModeServer, *net.UDPAddr, *Datagram) error
 }
+type DefaultHandle struct {
+}
 
 //req
 func (s *Sock5ModeServer) handleRequest(c net.Conn) {
@@ -93,13 +95,13 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 		log.Println(err)
 		return
 	}
+	s.Handle = &DefaultHandle{}
 	switch r.Cmd {
 	case connectMethod:
 		s.handleConnect(c)
 	case bindMethod:
 		s.handleBind(c)
 	case associateMethod:
-		log.Println("s, c, r", s, c, r)
 		s.Handle.handleUDP(s, c, r)
 	default:
 		s.sendReply(c, commandNotSupported)
@@ -196,7 +198,7 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 }
 
-func (h *Handler) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
+func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	log.Printf("handleUDP begin")
 	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
 	caddr, err := r.UDP(c, replyAddr)
@@ -373,7 +375,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 }
 
 // UDPHandle auto handle packet. You may prefer to do yourself.
-func (h *Handler) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
+func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
 	send := func(ue *UDPExchange, data []byte) error {
 		_, err := ue.RemoteConn.Write(data)
 		if err != nil {
