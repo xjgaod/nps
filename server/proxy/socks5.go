@@ -352,6 +352,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 		log.Println(err)
 		return err
 	}
+	log.Println("s.UDPConn", s.UDPConn.LocalAddr())
 	defer s.UDPConn.Close()
 	for {
 		b := make([]byte, 65536)
@@ -361,6 +362,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 			return err
 		}
 		go func(addr *net.UDPAddr, b []byte) {
+			log.Println("=================begin)
 			d, err := NewDatagramFromBytes(b)
 			if err != nil {
 				log.Println(err)
@@ -370,6 +372,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 				log.Println("Ignore frag", d.Frag)
 				return
 			}
+			log.Println("data is ", d)
 			if err := s.Handle.UDPHandle(s, addr, d); err != nil {
 				log.Println(err)
 				return
