@@ -200,7 +200,7 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	log.Printf("handleUDP begin")
-	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
+	replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
 	caddr, err := r.UDP(c, replyAddr)
 	if err != nil {
 		return
@@ -214,7 +214,6 @@ func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 		return
 	}
 	ch := make(chan byte)
-	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
 	s.TCPUDPAssociate.Set(caddr.String(), ch, cache.DefaultExpiration)
 	<-ch
 	return
@@ -309,6 +308,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 
 //start
 func (s *Sock5ModeServer) Start() error {
+	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
 	errch := make(chan error)
 	go func() {
 		errch <- s.RunUDPServer()
