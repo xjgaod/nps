@@ -214,6 +214,7 @@ func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 		return
 	}
 	ch := make(chan byte)
+	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
 	s.TCPUDPAssociate.Set(caddr.String(), ch, cache.DefaultExpiration)
 	<-ch
 	return
