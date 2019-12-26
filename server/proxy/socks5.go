@@ -3,11 +3,9 @@ package proxy
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
-	"os"
 	"strconv"
 	"time"
 
@@ -345,25 +343,7 @@ func (s *Sock5ModeServer) Close() error {
 
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
-	addrs, err := net.InterfaceAddrs()
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	for _, address := range addrs {
-
-		// 检查ip地址判断是否回环地址
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				fmt.Println(ipnet.IP.String())
-			}
-
-		}
-	}
-	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
-	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
+	replyAddr, err := net.ResolveUDPAddr("udp", s.GetHostAdd()+":0")
 	log.Printf("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
@@ -372,6 +352,11 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
 	if err != nil {
 		log.Println(err)
+		return err
+	}
+	s.UdpReplayAddr, err = net.ResolveUDPAddr("udp", s.UDPConn.LocalAddr().String())
+	if err != nil {
+		logs.Error("build s.UdpReplayAddr error", err)
 		return err
 	}
 	log.Println("s.UDPConn", s.UDPConn.LocalAddr())
