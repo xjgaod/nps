@@ -62,6 +62,7 @@ type Sock5ModeServer struct {
 	TCPAddr           *net.TCPAddr
 	UDPAddr           *net.UDPAddr
 	ServerAddr        *net.UDPAddr
+	UdpReplayAddr     *net.UDPAddr
 	TCPListen         *net.TCPListener
 	UDPConn           *net.UDPConn
 	UDPExchanges      *cache.Cache
@@ -200,8 +201,8 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	log.Printf("s handleUDP begin")
-	replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
-	caddr, err := r.UDP(c, replyAddr)
+	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
+	caddr, err := r.UDP(c, s.UdpReplayAddr)
 	log.Printf("ssss===", caddr)
 	if err != nil {
 		return
@@ -342,7 +343,8 @@ func (s *Sock5ModeServer) Close() error {
 
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
-	replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
+	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
+	replyAddr, err := net.ResolveUDPAddr("udp", s.task.ServerIp+":0")
 	log.Printf("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
