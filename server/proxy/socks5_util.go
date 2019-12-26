@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"net"
+	"os"
 	"strconv"
 )
 
@@ -269,9 +272,9 @@ func (r *Request) UDP(c net.Conn, serverAddr *net.UDPAddr) (*net.UDPAddr, error)
 		}
 		return nil, err
 	}
-	//	if Debug {
-	//		log.Println("Client wants to start UDP talk use", clientAddr.String())
-	//	}
+
+	log.Println("Client wants to start UDP talk use", clientAddr.String())
+
 	a, addr, port, err := ParseAddress(serverAddr.String())
 	if err != nil {
 		var p *Reply
@@ -408,4 +411,21 @@ func NewRequestFrom(r net.Conn) (*Request, error) {
 		DstAddr: addr,
 		DstPort: port,
 	}, nil
+}
+func (s *Sock5ModeServer) GetHostAdd() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	for _, address := range addrs {
+		// 检查ip地址判断是否回环地址
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+
+		}
+	}
+	return "0.0.0.0"
 }
