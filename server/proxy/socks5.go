@@ -99,6 +99,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 	s.Handle = &DefaultHandle{}
 	switch r.Cmd {
 	case connectMethod:
+		log.Println("connetct begin")
 		s.handleConnect(c)
 	case bindMethod:
 		s.handleBind(c)
@@ -133,6 +134,7 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 
 //do conn
 func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8) {
+	log.Println("begin")
 	addrType := make([]byte, 1)
 	c.Read(addrType)
 	var host string
