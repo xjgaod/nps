@@ -134,46 +134,37 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 
 //do conn
 func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8, r *Request) {
-	//logs.Trace("begin")
-	//addrType := make([]byte, 1)
 	logs.Trace("begin %#v, %#v", c.LocalAddr().String(), c.RemoteAddr().String())
-	//c.Read(addrType)
-	//logs.Trace("begin")
-	var host string
-	switch r.Atyp {
-	case ipV4:
-		logs.Trace("begin")
-		ipv4 := make(net.IP, net.IPv4len)
-		c.Read(ipv4)
-		host = ipv4.String()
-	case ipV6:
-		logs.Trace("begin")
-		ipv6 := make(net.IP, net.IPv6len)
-		c.Read(ipv6)
-		host = ipv6.String()
-	case domainName:
-		logs.Trace("begin")
-		var domainLen uint8
-		binary.Read(c, binary.BigEndian, &domainLen)
-		domain := make([]byte, domainLen)
-		c.Read(domain)
-		host = string(domain)
-	default:
-		logs.Trace("begin")
-		s.sendReply(c, addrTypeNotSupported)
-		return
-	}
+	//	var host string
+	//	switch r.Atyp {
+	//	case ipV4:
+	//		logs.Trace("ipv4 begin")
+	//		ipv4 := make(net.IP, net.IPv4len)
+	//		c.Read(ipv4)
+	//		host = ipv4.String()
+	//	case ipV6:
+	//		ipv6 := make(net.IP, net.IPv6len)
+	//		c.Read(ipv6)
+	//		host = ipv6.String()
+	//	case domainName:
+	//		var domainLen uint8
+	//		binary.Read(c, binary.BigEndian, &domainLen)
+	//		domain := make([]byte, domainLen)
+	//		c.Read(domain)
+	//		host = string(domain)
+	//	default:
+	//		s.sendReply(c, addrTypeNotSupported)
+	//		return
+	//	}
 
-	var port uint16
-	binary.Read(c, binary.BigEndian, &port)
+//	var port uint16
+//	binary.Read(c, binary.BigEndian, &port)
 	// connect to host
-	logs.Trace("begin")
-	addr := net.JoinHostPort(host, strconv.Itoa(int(port)))
+	addr := net.JoinHostPort(r.DstAddr, r.DstPort))
 	var ltype string
 	if command == associateMethod {
 		ltype = common.CONN_UDP
 	} else {
-		logs.Trace("begin")
 		ltype = common.CONN_TCP
 	}
 	logs.Trace("begin")
