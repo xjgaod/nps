@@ -429,3 +429,9 @@ func (s *Sock5ModeServer) GetHostAdd() string {
 	}
 	return "0.0.0.0"
 }
+func (s *Sock5ModeServer) ToAddress(addr []byte, port []byte) string {
+	var h, p string
+	h = net.IP(addr).String()
+	p = strconv.Itoa(int(binary.BigEndian.Uint16(port)))
+	return net.JoinHostPort(h, p)
+}
