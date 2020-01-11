@@ -100,7 +100,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 	switch r.Cmd {
 	case connectMethod:
 		logs.Trace("connetct begin")
-		s.handleConnect(c)
+		s.handleConnect(c, r)
 	case bindMethod:
 		s.handleBind(c)
 	case associateMethod:
@@ -133,14 +133,14 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 }
 
 //do conn
-func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8) {
+func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8, r *Request) {
 	logs.Trace("begin")
 	addrType := make([]byte, 1)
 	logs.Trace("begin %#v, %#v", c.LocalAddr().String(), c.RemoteAddr().String())
-	c.Read(addrType)
+	//c.Read(addrType)
 	logs.Trace("begin")
 	var host string
-	switch addrType[0] {
+	switch r.Atyp {
 	case ipV4:
 		logs.Trace("begin")
 		ipv4 := make(net.IP, net.IPv4len)
@@ -184,8 +184,8 @@ func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8) {
 }
 
 //conn
-func (s *Sock5ModeServer) handleConnect(c net.Conn) {
-	s.doConnect(c, connectMethod)
+func (s *Sock5ModeServer) handleConnect(c net.Conn, r *Request) {
+	s.doConnect(c, connectMethod, r)
 }
 
 // passive mode
