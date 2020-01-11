@@ -134,11 +134,11 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 
 //do conn
 func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8, r *Request) {
-	logs.Trace("begin")
-	addrType := make([]byte, 1)
+	//logs.Trace("begin")
+	//addrType := make([]byte, 1)
 	logs.Trace("begin %#v, %#v", c.LocalAddr().String(), c.RemoteAddr().String())
 	//c.Read(addrType)
-	logs.Trace("begin")
+	//logs.Trace("begin")
 	var host string
 	switch r.Atyp {
 	case ipV4:
