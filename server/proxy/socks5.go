@@ -99,7 +99,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 	s.Handle = &DefaultHandle{}
 	switch r.Cmd {
 	case connectMethod:
-		log.Println("connetct begin")
+		logs.Trace("connetct begin")
 		s.handleConnect(c)
 	case bindMethod:
 		s.handleBind(c)
@@ -134,26 +134,30 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 
 //do conn
 func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8) {
-	log.Println("begin")
+	logs.Trace("begin")
 	addrType := make([]byte, 1)
 	c.Read(addrType)
 	var host string
 	switch addrType[0] {
 	case ipV4:
+		logs.Trace("begin")
 		ipv4 := make(net.IP, net.IPv4len)
 		c.Read(ipv4)
 		host = ipv4.String()
 	case ipV6:
+		logs.Trace("begin")
 		ipv6 := make(net.IP, net.IPv6len)
 		c.Read(ipv6)
 		host = ipv6.String()
 	case domainName:
+		logs.Trace("begin")
 		var domainLen uint8
 		binary.Read(c, binary.BigEndian, &domainLen)
 		domain := make([]byte, domainLen)
 		c.Read(domain)
 		host = string(domain)
 	default:
+		logs.Trace("begin")
 		s.sendReply(c, addrTypeNotSupported)
 		return
 	}
@@ -161,13 +165,16 @@ func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8) {
 	var port uint16
 	binary.Read(c, binary.BigEndian, &port)
 	// connect to host
+	logs.Trace("begin")
 	addr := net.JoinHostPort(host, strconv.Itoa(int(port)))
 	var ltype string
 	if command == associateMethod {
 		ltype = common.CONN_UDP
 	} else {
+		logs.Trace("begin")
 		ltype = common.CONN_TCP
 	}
+	logs.Trace("begin")
 	s.DealClient(conn.NewConn(c), s.task.Client, addr, nil, ltype, func() {
 		s.sendReply(c, succeeded)
 	}, s.task.Flow, s.task.Target.LocalProxy)
