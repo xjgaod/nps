@@ -157,10 +157,10 @@ func (s *Sock5ModeServer) doConnect(c net.Conn, command uint8, r *Request) {
 	//		return
 	//	}
 
-//	var port uint16
-//	binary.Read(c, binary.BigEndian, &port)
+	//	var port uint16
+	//	binary.Read(c, binary.BigEndian, &port)
 	// connect to host
-	addr := net.JoinHostPort(r.DstAddr, r.DstPort))
+	addr := s.ToAddress(r.DstAddr, r.DstPort)
 	var ltype string
 	if command == associateMethod {
 		ltype = common.CONN_UDP
