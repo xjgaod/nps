@@ -93,7 +93,7 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 	*/
 	r, err := s.GetRequest(c)
 	if err != nil {
-		log.Println(err)
+		logs.Info(err)
 		return
 	}
 	s.Handle = &DefaultHandle{}
@@ -174,10 +174,10 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 }
 
 func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
-	log.Printf("s handleUDP begin")
+	logs.Info("s handleUDP begin")
 	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
 	caddr, err := r.UDP(c, s.UdpReplayAddr)
-	log.Printf("ssss===", caddr)
+	logs.Info("===========", caddr)
 	if err != nil {
 		return
 	}
@@ -296,7 +296,7 @@ func (s *Sock5ModeServer) Start() error {
 			c.Close()
 			return
 		}
-		logs.Trace("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
+		logs.Info("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
 		s.handleConn(c)
 		s.task.Client.AddConn()
 	}, &s.listener)
@@ -318,14 +318,14 @@ func (s *Sock5ModeServer) Close() error {
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
 	replyAddr, err := net.ResolveUDPAddr("udp", s.GetHostAdd()+":0")
-	log.Printf("replyAddr is", replyAddr)
+	logs.Info("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
 		return err
 	}
 	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
 	if err != nil {
-		log.Println(err)
+		logs.Error(err)
 		return err
 	}
 	s.UdpReplayAddr, err = net.ResolveUDPAddr("udp", s.UDPConn.LocalAddr().String())
@@ -333,7 +333,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 		logs.Error("build s.UdpReplayAddr error", err)
 		return err
 	}
-	log.Println("s.UDPConn", s.UDPConn.LocalAddr())
+	logs.Info("s.UDPConn", s.UDPConn.LocalAddr())
 	defer s.UDPConn.Close()
 	for {
 		b := make([]byte, 65536)
@@ -343,19 +343,19 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 			return err
 		}
 		go func(addr *net.UDPAddr, b []byte) {
-			log.Println("=================begin")
+			logs.Error("=================begin")
 			d, err := NewDatagramFromBytes(b)
 			if err != nil {
-				log.Println(err)
+				logs.Error(err)
 				return
 			}
 			if d.Frag != 0x00 {
-				log.Println("Ignore frag", d.Frag)
+				logs.Error("Ignore frag", d.Frag)
 				return
 			}
-			log.Println("data is ", d)
+			logs.Info("data is ", d)
 			if err := s.Handle.UDPHandle(s, addr, d); err != nil {
-				log.Println(err)
+				logs.Error(err)
 				return
 			}
 		}(addr, b[0:n])
@@ -371,7 +371,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 			return err
 		}
 
-		log.Printf("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
+		logs.Info("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
 
 		return nil
 	}
@@ -383,7 +383,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		return send(ue, d.Data)
 	}
 
-	log.Printf("Call udp: %#v\n", d.Address())
+	logs.Info("Call udp: %#v\n", d.Address())
 
 	c, err := dial.Dial("udp", d.Address())
 	if err != nil {
@@ -403,7 +403,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		RemoteConn: rc,
 	}
 
-	log.Printf("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
+	logs.Info("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
 
 	if err := send(ue, d.Data); err != nil {
 		v, ok := s.TCPUDPAssociate.Get(ue.ClientAddr.String())
@@ -440,7 +440,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 				break
 			}
 
-			log.Printf("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
+			logs.Info("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
 
 			a, addr, port, err := ParseAddress(ue.ClientAddr.String())
 			if err != nil {
@@ -452,7 +452,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 				break
 			}
 
-			log.Printf("Sent Datagram. client: %#v server: %#v remote: %#v data: %#v %#v %#v %#v %#v %#v datagram address: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), d1.Rsv, d1.Frag, d1.Atyp, d1.DstAddr, d1.DstPort, d1.Data, d1.Address())
+			logs.Info("Sent Datagram. client: %#v server: %#v remote: %#v data: %#v %#v %#v %#v %#v %#v datagram address: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), d1.Rsv, d1.Frag, d1.Atyp, d1.DstAddr, d1.DstPort, d1.Data, d1.Address())
 
 		}
 	}(ue)

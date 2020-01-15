@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/astaxie/beego/logs"
 )
 
 const (
@@ -273,7 +274,7 @@ func (r *Request) UDP(c net.Conn, serverAddr *net.UDPAddr) (*net.UDPAddr, error)
 		return nil, err
 	}
 
-	log.Println("Client wants to start UDP talk use", clientAddr.String())
+	logs.Info("Client wants to start UDP talk use", clientAddr.String())
 
 	a, addr, port, err := ParseAddress(serverAddr.String())
 	if err != nil {
@@ -330,9 +331,9 @@ func (r *Reply) WriteTo(w net.Conn) error {
 	if _, err := w.Write(r.BndPort); err != nil {
 		return err
 	}
-	//	if Debug {
-	//		log.Printf("Sent Reply: %#v %#v %#v %#v %#v %#v\n", r.Ver, r.Rep, r.Rsv, r.Atyp, r.BndAddr, r.BndPort)
-	//	}
+
+	logs.Info("Sent Reply: %#v %#v %#v %#v %#v %#v\n", r.Ver, r.Rep, r.Rsv, r.Atyp, r.BndAddr, r.BndPort)
+
 	return nil
 }
 func (s *Sock5ModeServer) GetRequest(c net.Conn) (*Request, error) {
@@ -400,9 +401,9 @@ func NewRequestFrom(r net.Conn) (*Request, error) {
 	if _, err := io.ReadFull(r, port); err != nil {
 		return nil, err
 	}
-	//	if Debug {
-	//		log.Printf("Got Request: %#v %#v %#v %#v %#v %#v\n", bb[0], bb[1], bb[2], bb[3], addr, port)
-	//	}
+
+	logs.Info("Got Request: %#v %#v %#v %#v %#v %#v\n", bb[0], bb[1], bb[2], bb[3], addr, port)
+
 	return &Request{
 		Ver:     bb[0],
 		Cmd:     bb[1],
