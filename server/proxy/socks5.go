@@ -251,20 +251,21 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 		return err
 	}
 	rdb := tool.GetRdb()
-	if p, err := rdb.Get(string(user)).Result(); err != nil {
-		if p != "" && string(pass) == p {
-			if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
-				return err
-			}
-			return nil
+	p, err := rdb.Get(string(user)).Result()
+	if err != nil {
+		return errors.New("验证不通过")
+	}
+	if p != "" && string(pass) == p {
+		if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
+			return err
 		}
+		return nil
 	} else {
 		if _, err := c.Write([]byte{userAuthVersion, authFailure}); err != nil {
 			return err
 		}
 		return errors.New("验证不通过")
 	}
-	return nil
 }
 
 //start
