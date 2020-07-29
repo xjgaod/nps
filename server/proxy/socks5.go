@@ -252,15 +252,13 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	}
 	var p string
 	rdb := tool.GetRdb()
-	if P := rdb.Get(string(user)); P != nil {
-		p = P.String()
-	}
-	logs.Info("password is %s", p)
-	if p != "" && string(pass) == p {
-		if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
-			return err
+	if p, err := rdb.Get(string(user)).Result(); err != nil {
+		if p != "" && string(pass) == p {
+			if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
+				return err
+			}
+			return nil
 		}
-		return nil
 	} else {
 		if _, err := c.Write([]byte{userAuthVersion, authFailure}); err != nil {
 			return err
