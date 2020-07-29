@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"encoding/json"
+	"github.com/astaxie/beego"
 	"github.com/cnlh/nps/lib/file"
 	"github.com/cnlh/nps/server"
 	"github.com/cnlh/nps/server/tool"
-	
-	"github.com/astaxie/beego"
 )
 
 type IndexController struct {
@@ -84,7 +84,38 @@ func (s *IndexController) GetTunnel() {
 	list, cnt := server.GetTunnel(start, length, taskType, clientId, s.getEscapeString("search"))
 	s.AjaxTable(list, cnt, cnt)
 }
-
+func (s *IndexController) AddUser() {
+	if s.Ctx.Request.Method != "POST" {
+		s.AjaxErr("unsupport method type")
+	}
+	rdb := tool.GetRdb()
+	var user User
+	data := s.Ctx.Input.RequestBody
+	if err := json.Unmarshal(data, &user); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	if err := rdb.Set(user.Name, user.PassWord, 0).Err(); err != nil {
+		s.AjaxErr(err.Error())
+	} else {
+		s.AjaxOk("add user success")
+	}
+}
+func (s *IndexController) DelUser() {
+	if s.Ctx.Request.Method != "DELETE" {
+		s.AjaxErr("unsupport method type")
+	}
+	rdb := tool.GetRdb()
+	var user User
+	data := s.Ctx.Input.RequestBody
+	if err := json.Unmarshal(data, &user); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	if err := rdb.Del(user.Name).Err(); err != nil {
+		s.AjaxErr(err.Error())
+	} else {
+		s.AjaxOk(" delete user success")
+	}
+}
 func (s *IndexController) Add() {
 	if s.Ctx.Request.Method == "GET" {
 		s.Data["type"] = s.getEscapeString("type")

@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/cnlh/nps/server/tool"
 	"io"
 	"log"
 	"net"
@@ -217,17 +218,12 @@ func (s *Sock5ModeServer) handleConn(c net.Conn) {
 		c.Close()
 		return
 	}
-	if (s.task.Client.Cnf.U != "" && s.task.Client.Cnf.P != "") || (s.task.MultiAccount != nil && len(s.task.MultiAccount.AccountMap) > 0) {
-		buf[1] = UserPassAuth
-		c.Write(buf)
-		if err := s.Auth(c); err != nil {
-			c.Close()
-			logs.Warn("Validation failed:", err)
-			return
-		}
-	} else {
-		buf[1] = 0
-		c.Write(buf)
+	buf[1] = UserPassAuth
+	c.Write(buf)
+	if err := s.Auth(c); err != nil {
+		c.Close()
+		logs.Warn("Validation failed:", err)
+		return
 	}
 	s.handleRequest(c)
 }
@@ -254,22 +250,13 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	if _, err := io.ReadAtLeast(c, pass, passLen); err != nil {
 		return err
 	}
-
-	var U, P string
-	if s.task.MultiAccount != nil {
-		// enable multi user auth
-		U = string(user)
-		var ok bool
-		P, ok = s.task.MultiAccount.AccountMap[U]
-		if !ok {
-			return errors.New("验证不通过")
-		}
-	} else {
-		U = s.task.Client.Cnf.U
-		P = s.task.Client.Cnf.P
+	var p string
+	rdb := tool.GetRdb()
+	if P := rdb.Get(string(user)); P != nil {
+		p = P.String()
 	}
-
-	if string(user) == U && string(pass) == P {
+	logs.Info("password is %s", p)
+	if p != "" && string(pass) == p {
 		if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
 			return err
 		}

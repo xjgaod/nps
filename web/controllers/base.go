@@ -20,6 +20,11 @@ type BaseController struct {
 	actionName     string
 }
 
+type User struct {
+	Name     string
+	PassWord string
+}
+
 //初始化参数
 func (s *BaseController) Prepare() {
 	s.Data["web_base_url"] = beego.AppConfig.String("web_base_url")
