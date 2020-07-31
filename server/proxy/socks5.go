@@ -250,8 +250,12 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	if _, err := io.ReadAtLeast(c, pass, passLen); err != nil {
 		return err
 	}
-	rdb := tool.GetRdb()
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		return err
+	}
 	p, err := rdb.Get(string(user)).Result()
+	_ = rdb.Close()
 	if err != nil {
 		return errors.New("验证不通过")
 	}

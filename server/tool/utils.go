@@ -90,11 +90,15 @@ func getSeverStatus() {
 		ServerStatus = append(ServerStatus, m)
 	}
 }
-func GetRdb() *redis.Client {
+func GetRdb() (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "172.19.129.219:6379",
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
-	return rdb
+	_, err := rdb.Ping().Result()
+	if err != nil {
+		return rdb, err
+	}
+	return rdb, nil
 }

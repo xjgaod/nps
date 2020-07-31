@@ -88,13 +88,18 @@ func (s *IndexController) AddUser() {
 	if s.Ctx.Request.Method != "POST" {
 		s.AjaxErr("unsupport method type")
 	}
-	rdb := tool.GetRdb()
 	var user User
 	data := s.Ctx.Input.RequestBody
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	if err := rdb.Set(user.Name, user.PassWord, 0).Err(); err != nil {
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.Set(user.Name, user.PassWord, 0).Err()
+	_ = rdb.Close()
+	if err != nil {
 		s.AjaxErr(err.Error())
 	} else {
 		s.AjaxOk("add user success")
@@ -104,13 +109,18 @@ func (s *IndexController) DelUser() {
 	if s.Ctx.Request.Method != "DELETE" {
 		s.AjaxErr("unsupport method type")
 	}
-	rdb := tool.GetRdb()
 	var user User
 	data := s.Ctx.Input.RequestBody
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	if err := rdb.Del(user.Name).Err(); err != nil {
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.Del(user.Name).Err()
+	_ = rdb.Close()
+	if err != nil {
 		s.AjaxErr(err.Error())
 	} else {
 		s.AjaxOk(" delete user success")
