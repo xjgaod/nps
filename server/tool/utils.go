@@ -92,9 +92,9 @@ func getSeverStatus() {
 }
 func GetRdb() (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "172.19.129.219:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     beego.AppConfig.String("redis_host"),
+		Password: beego.AppConfig.String("redis_passwd"), // no password set
+		DB:       0,                                      // use default DB
 	})
 	_, err := rdb.Ping().Result()
 	if err != nil {
