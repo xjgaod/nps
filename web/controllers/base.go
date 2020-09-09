@@ -38,11 +38,14 @@ func (s *BaseController) Prepare() {
 	timestamp := s.GetIntNoErr("timestamp")
 	configKey := beego.AppConfig.String("auth_key")
 	timeNowUnix := time.Now().Unix()
-	if !((math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
-		if s.GetSession("auth") != true {
-			s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+	if !(s.actionName == "adduser" || s.actionName == "deluser") {
+		if !((math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
+			if s.GetSession("auth") != true {
+				s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+			}
 		}
 	}
+
 	if s.GetSession("isAdmin") != nil && !s.GetSession("isAdmin").(bool) {
 		s.Ctx.Input.SetData("client_id", s.GetSession("clientId").(int))
 		s.Ctx.Input.SetParam("client_id", strconv.Itoa(s.GetSession("clientId").(int)))
