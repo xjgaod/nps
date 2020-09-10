@@ -67,7 +67,9 @@ func (s *WebServer) Start() error {
 	beego.SetViewsPath(filepath.Join(common.GetRunPath(), "web", "views"))
 	if l, err := connection.GetWebManagerListener(); err == nil {
 		beego.InitBeforeHTTPRun()
-		http.Serve(l, beego.BeeApp.Handlers)
+		certFile := beego.AppConfig.String("https_default_cert_file")
+		keyFile := beego.AppConfig.String("https_default_key_file")
+		http.ServeTLS(l, beego.BeeApp.Handlers, certFile, keyFile)
 	} else {
 		logs.Error(err)
 	}
