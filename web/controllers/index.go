@@ -118,17 +118,15 @@ func (s *IndexController) MuxAddUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	var pairs string
 	for _, user := range users.Users {
-		pairs = " " + user.Name + " " + user.PassWord
+		err = rdb.Set(user.Name, user.PassWord, 0).Err()
+		if err != nil {
+			_ = rdb.Close()
+			s.AjaxErr(err.Error())
+		}
 	}
-	err = rdb.MSet(pairs).Err()
 	_ = rdb.Close()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	} else {
-		s.AjaxOk("add user success")
-	}
+	s.AjaxOk("add user success")
 }
 func (s *IndexController) DelUser() {
 	if s.Ctx.Request.Method != "DELETE" {
