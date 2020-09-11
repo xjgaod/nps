@@ -97,7 +97,7 @@ func (s *IndexController) AddUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	err = rdb.Set(user.Name, user.PassWord, 0).Err()
+	err = rdb.SetNX(user.Name, user.PassWord, 0).Err()
 	_ = rdb.Close()
 	if err != nil {
 		s.AjaxErr(err.Error())
@@ -105,8 +105,52 @@ func (s *IndexController) AddUser() {
 		s.AjaxOk("add user success")
 	}
 }
+func (s *IndexController) ModifyUser() {
+	if s.Ctx.Request.Method != "PUT" {
+		s.AjaxErr("unsupport method type")
+	}
+	var user User
+	data := s.Ctx.Input.RequestBody
+	if err := json.Unmarshal(data, &user); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.Set(user.Name, user.PassWord, 0).Err()
+	_ = rdb.Close()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	} else {
+		s.AjaxOk("modify user success")
+	}
+}
 func (s *IndexController) MuxAddUser() {
 	if s.Ctx.Request.Method != "POST" {
+		s.AjaxErr("unsupport method type")
+	}
+	var users MuxUser
+	data := s.Ctx.Input.RequestBody
+	if err := json.Unmarshal(data, &users); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	for _, user := range users.Users {
+		err = rdb.SetNX(user.Name, user.PassWord, 0).Err()
+		if err != nil {
+			_ = rdb.Close()
+			s.AjaxErr(err.Error())
+		}
+	}
+	_ = rdb.Close()
+	s.AjaxOk("mux add user success")
+}
+func (s *IndexController) MuxModifyUser() {
+	if s.Ctx.Request.Method != "PUT" {
 		s.AjaxErr("unsupport method type")
 	}
 	var users MuxUser
@@ -126,7 +170,31 @@ func (s *IndexController) MuxAddUser() {
 		}
 	}
 	_ = rdb.Close()
-	s.AjaxOk("add user success")
+	s.AjaxOk("mux modify user success")
+}
+
+func (s *IndexController) MuxDelUser() {
+	if s.Ctx.Request.Method != "DELETE" {
+		s.AjaxErr("unsupport method type")
+	}
+	var users MuxUser
+	data := s.Ctx.Input.RequestBody
+	if err := json.Unmarshal(data, &users); err != nil {
+		s.AjaxErr(err.Error())
+	}
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	for _, user := range users.Users {
+		err = rdb.Del(user.Name).Err()
+		if err != nil {
+			_ = rdb.Close()
+			s.AjaxErr(err.Error())
+		}
+	}
+	_ = rdb.Close()
+	s.AjaxOk("mux delete user success")
 }
 func (s *IndexController) DelUser() {
 	if s.Ctx.Request.Method != "DELETE" {

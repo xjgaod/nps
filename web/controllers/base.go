@@ -42,7 +42,7 @@ func (s *BaseController) Prepare() {
 	configKey := beego.AppConfig.String("auth_key")
 	timeNowUnix := time.Now().Unix()
 	var url = s.actionName
-	if !(strings.ContainsAny(url, "adduser") || strings.ContainsAny(url, "deluser")) {
+	if !(strings.ContainsAny(url, "user")) {
 		if !((math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
 			if s.GetSession("auth") != true {
 				s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
