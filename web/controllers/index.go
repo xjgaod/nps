@@ -97,7 +97,7 @@ func (s *IndexController) AddUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	pass, err := tool.AesPassGet(user.PassWord)
+	pass, err := tool.AesDPassGet(user.PassWord)
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -122,7 +122,7 @@ func (s *IndexController) ModifyUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	pass, err := tool.AesPassGet(user.PassWord)
+	pass, err := tool.AesDPassGet(user.PassWord)
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -148,7 +148,7 @@ func (s *IndexController) MuxAddUser() {
 		s.AjaxErr(err.Error())
 	}
 	for _, user := range users.Users {
-		pass, err := tool.AesPassGet(user.PassWord)
+		pass, err := tool.AesDPassGet(user.PassWord)
 		if err != nil {
 			s.AjaxErr(err.Error())
 		}
@@ -175,7 +175,7 @@ func (s *IndexController) MuxModifyUser() {
 		s.AjaxErr(err.Error())
 	}
 	for _, user := range users.Users {
-		pass, err := tool.AesPassGet(user.PassWord)
+		pass, err := tool.AesDPassGet(user.PassWord)
 		if err != nil {
 			s.AjaxErr(err.Error())
 		}

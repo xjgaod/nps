@@ -145,7 +145,7 @@ func aesDecrypt(crypted, key []byte) ([]byte, error) {
 	origData = pKCS5UnPadding(origData)
 	return origData, nil
 }
-func AesPassGet(password string) (string, error) {
+func AesDPassGet(password string) (string, error) {
 	bytesPass, err := base64.StdEncoding.DecodeString(password)
 	if err != nil {
 		return "", err
@@ -157,5 +157,16 @@ func AesPassGet(password string) (string, error) {
 	}
 	var pass = string(tpass[:])
 	return pass, nil
+
+}
+func AesEPassGet(password string) (string, error) {
+	var aeskey = []byte(beego.AppConfig.String("aes_key"))
+	bytepass := []byte(password)
+	xpass, err := aesEncrypt(bytepass, aeskey)
+	if err != nil {
+		return "", err
+	}
+	pass64 := base64.StdEncoding.EncodeToString(xpass)
+	return pass64, nil
 
 }
