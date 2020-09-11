@@ -4,8 +4,16 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
+	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	"math"
 	"strconv"
 	"time"
@@ -169,4 +177,44 @@ func AesEPassGet(password string) (string, error) {
 	pass64 := base64.StdEncoding.EncodeToString(xpass)
 	return pass64, nil
 
+}
+func Decrypt(ciphertext string) (string, error) {
+	privatekey, err := loadPrivateKeyFile()
+	if err != nil {
+		return "", fmt.Errorf("get pivate pem failed, error=%s\n",
+			err.Error())
+	}
+	decodedtext, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return "", fmt.Errorf("base64 decode failed, error=%s\n",
+			err.Error())
+	}
+
+	sha256hash := sha256.New()
+	decryptedtext, err := rsa.DecryptOAEP(sha256hash, rand.Reader,
+		privatekey, decodedtext, nil)
+	if err != nil {
+		return "", fmt.Errorf("RSA decrypt failed, error=%s\n",
+			err.Error())
+	}
+
+	return string(decryptedtext), nil
+}
+func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
+	keybuffer, err := ioutil.ReadFile(beego.AppConfig.String("rsa_private_file"))
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode([]byte(keybuffer))
+	if block == nil {
+		return nil, errors.New("private key error!")
+	}
+
+	privatekey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, errors.New("parse private key error!")
+	}
+
+	return privatekey, nil
 }
