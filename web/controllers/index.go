@@ -6,7 +6,7 @@ import (
 	"github.com/cnlh/nps/lib/file"
 	"github.com/cnlh/nps/server"
 	"github.com/cnlh/nps/server/tool"
-	"log"
+	"strings"
 )
 
 type IndexController struct {
@@ -140,9 +140,17 @@ func (s *IndexController) MuxAddUser() {
 		s.AjaxErr("unsupport method type")
 	}
 	var users MuxUser
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	afterAuth, err := tool.Decrypt(auth)
+	if err != nil {
+		s.AjaxErr("param:Authorization invalid")
+	}
+	authjson := strings.Split(afterAuth, "&")
 	data := s.Ctx.Input.RequestBody
-	var strjson = string(data[:])
-	log.Print(strjson)
+	var ojson = string(data[:])
+	if authjson[1] != ojson {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
