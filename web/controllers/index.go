@@ -140,6 +140,10 @@ func (s *IndexController) MuxAddUser() {
 	}
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
+	var strjson string
+	if err := json.Unmarshal(data, &strjson); err != nil {
+		s.AjaxErr(err.Error())
+	}
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
