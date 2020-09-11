@@ -24,6 +24,9 @@ type User struct {
 	Name     string
 	PassWord string
 }
+type MuxUser struct {
+	Users []User `json:"users"`
+}
 
 //初始化参数
 func (s *BaseController) Prepare() {
@@ -38,7 +41,8 @@ func (s *BaseController) Prepare() {
 	timestamp := s.GetIntNoErr("timestamp")
 	configKey := beego.AppConfig.String("auth_key")
 	timeNowUnix := time.Now().Unix()
-	if !(s.actionName == "adduser" || s.actionName == "deluser") {
+	var url = s.actionName
+	if !(strings.ContainsAny(url, "adduser") || strings.ContainsAny(url, "deluser")) {
 		if !((math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
 			if s.GetSession("auth") != true {
 				s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
