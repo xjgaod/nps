@@ -97,7 +97,11 @@ func (s *IndexController) AddUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	err = rdb.SetNX(user.Name, user.PassWord, 0).Err()
+	pass, err := tool.AesPassGet(user.PassWord)
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.SetNX(user.Name, pass, 0).Err()
 	_ = rdb.Close()
 	if err != nil {
 		s.AjaxErr(err.Error())
@@ -118,7 +122,11 @@ func (s *IndexController) ModifyUser() {
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	err = rdb.Set(user.Name, user.PassWord, 0).Err()
+	pass, err := tool.AesPassGet(user.PassWord)
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.Set(user.Name, pass, 0).Err()
 	_ = rdb.Close()
 	if err != nil {
 		s.AjaxErr(err.Error())
@@ -140,7 +148,11 @@ func (s *IndexController) MuxAddUser() {
 		s.AjaxErr(err.Error())
 	}
 	for _, user := range users.Users {
-		err = rdb.SetNX(user.Name, user.PassWord, 0).Err()
+		pass, err := tool.AesPassGet(user.PassWord)
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.SetNX(user.Name, pass, 0).Err()
 		if err != nil {
 			_ = rdb.Close()
 			s.AjaxErr(err.Error())
@@ -163,7 +175,11 @@ func (s *IndexController) MuxModifyUser() {
 		s.AjaxErr(err.Error())
 	}
 	for _, user := range users.Users {
-		err = rdb.Set(user.Name, user.PassWord, 0).Err()
+		pass, err := tool.AesPassGet(user.PassWord)
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.Set(user.Name, pass, 0).Err()
 		if err != nil {
 			_ = rdb.Close()
 			s.AjaxErr(err.Error())

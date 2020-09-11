@@ -1,6 +1,10 @@
 package tool
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"github.com/go-redis/redis"
 	"math"
 	"strconv"
@@ -101,4 +105,57 @@ func GetRdb() (*redis.Client, error) {
 		return rdb, err
 	}
 	return rdb, nil
+}
+func pKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func pKCS5UnPadding(origData []byte) []byte {
+	length := len(origData)
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
+}
+
+func aesEncrypt(origData, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSize := block.BlockSize()
+	origData = pKCS5Padding(origData, blockSize)
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
+	crypted := make([]byte, len(origData))
+	blockMode.CryptBlocks(crypted, origData)
+	return crypted, nil
+}
+
+func aesDecrypt(crypted, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSize := block.BlockSize()
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	origData := make([]byte, len(crypted))
+	blockMode.CryptBlocks(origData, crypted)
+	origData = pKCS5UnPadding(origData)
+	return origData, nil
+}
+func AesPassGet(password string) (string, error) {
+	bytesPass, err := base64.StdEncoding.DecodeString(password)
+	if err != nil {
+		return "", err
+	}
+	var aeskey = []byte(beego.AppConfig.String("aes_key"))
+	tpass, err := aesDecrypt(bytesPass, aeskey)
+	if err != nil {
+		return "", err
+	}
+	var pass = string(tpass[:])
+	return pass, nil
+
 }
