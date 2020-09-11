@@ -6,6 +6,7 @@ import (
 	"github.com/cnlh/nps/lib/file"
 	"github.com/cnlh/nps/server"
 	"github.com/cnlh/nps/server/tool"
+	"log"
 )
 
 type IndexController struct {
@@ -140,10 +141,8 @@ func (s *IndexController) MuxAddUser() {
 	}
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
-	var strjson string
-	if err := json.Unmarshal(data, &strjson); err != nil {
-		s.AjaxErr(err.Error())
-	}
+	var strjson = string(data[:])
+	log.Print(strjson)
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
