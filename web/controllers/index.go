@@ -145,10 +145,10 @@ func (s *IndexController) MuxAddUser() {
 	if err != nil {
 		s.AjaxErr("param:Authorization invalid")
 	}
-	authjson := strings.Split(afterAuth, "&")
 	data := s.Ctx.Input.RequestBody
 	var ojson = string(data[:])
-	if authjson[1] != ojson {
+	authjson := strings.Split(afterAuth, "&")
+	if res := strings.Compare(authjson[1], ojson); res != 0 {
 		s.AjaxErr("Auth failed")
 	}
 	if err := json.Unmarshal(data, &users); err != nil {
