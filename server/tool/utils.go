@@ -233,8 +233,13 @@ func AuthHeaderAndBody(header string, body []byte) error {
 		return errors.New("param:Authorization invalid")
 	}
 	afterAuth = strings.Replace(afterAuth, "msisdn=13709098877&", "", -1)
+	afterAuth = strings.Replace(afterAuth, "\r", "", -1)
+	afterAuth = strings.Replace(afterAuth, "\n", "", -1)
+	afterAuth = strings.Replace(afterAuth, "\t", "", -1)
 	var ojson = string(body[:])
 	ojson = strings.Replace(ojson, "\r", "", -1)
+	ojson = strings.Replace(ojson, "\n", "", -1)
+	ojson = strings.Replace(ojson, "\t", "", -1)
 	if res := strings.Compare(afterAuth, ojson); res != 0 {
 		return errors.New("Auth failed")
 	}
