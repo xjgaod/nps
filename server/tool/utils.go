@@ -208,7 +208,7 @@ func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 		panic(err)
 	}
 	exPath := filepath.Dir(ex)
-	repath := exPath + beego.AppConfig.String("rsa_private_file")
+	repath := exPath + "/" + beego.AppConfig.String("rsa_private_file")
 	keybuffer, err := ioutil.ReadFile(repath)
 	if err != nil {
 		return nil, err
