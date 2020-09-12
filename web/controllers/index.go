@@ -6,7 +6,6 @@ import (
 	"github.com/cnlh/nps/lib/file"
 	"github.com/cnlh/nps/server"
 	"github.com/cnlh/nps/server/tool"
-	"strings"
 )
 
 type IndexController struct {
@@ -91,6 +90,10 @@ func (s *IndexController) AddUser() {
 	}
 	var user User
 	data := s.Ctx.Input.RequestBody
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -116,6 +119,10 @@ func (s *IndexController) ModifyUser() {
 	}
 	var user User
 	data := s.Ctx.Input.RequestBody
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -141,15 +148,8 @@ func (s *IndexController) MuxAddUser() {
 	}
 	var users MuxUser
 	auth := s.Ctx.Request.Header.Get("Authorization")
-	afterAuth, err := tool.Decrypt(auth)
-	if err != nil {
-		s.AjaxErr("param:Authorization invalid")
-	}
 	data := s.Ctx.Input.RequestBody
-	var ojson = string(data[:])
-	afterAuth = strings.Replace(afterAuth, "msisdn=13709098877&", "", -1)
-	ojson = strings.Replace(ojson, "\r", "", -1)
-	if res := strings.Compare(afterAuth, ojson); res != 0 {
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
 		s.AjaxErr("Auth failed")
 	}
 	if err := json.Unmarshal(data, &users); err != nil {
@@ -179,6 +179,10 @@ func (s *IndexController) MuxModifyUser() {
 	}
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -207,6 +211,10 @@ func (s *IndexController) MuxDelUser() {
 	}
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
@@ -230,6 +238,10 @@ func (s *IndexController) DelUser() {
 	}
 	var user User
 	data := s.Ctx.Input.RequestBody
+	auth := s.Ctx.Request.Header.Get("Authorization")
+	if err := tool.AuthHeaderAndBody(auth, data); err != nil {
+		s.AjaxErr("Auth failed")
+	}
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}

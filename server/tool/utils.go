@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/astaxie/beego"
@@ -225,4 +226,17 @@ func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 	}
 
 	return privatekey, nil
+}
+func AuthHeaderAndBody(header string, body []byte) error {
+	afterAuth, err := Decrypt(header)
+	if err != nil {
+		return errors.New("param:Authorization invalid")
+	}
+	afterAuth = strings.Replace(afterAuth, "msisdn=13709098877&", "", -1)
+	var ojson = string(body[:])
+	ojson = strings.Replace(ojson, "\r", "", -1)
+	if res := strings.Compare(afterAuth, ojson); res != 0 {
+		return errors.New("Auth failed")
+	}
+	return nil
 }
