@@ -147,7 +147,7 @@ func (s *IndexController) MuxAddUser() {
 	}
 	data := s.Ctx.Input.RequestBody
 	var ojson = string(data[:])
-	authjson := strings.Split(afterAuth, "&")
+	var authjson = strings.Split(afterAuth, "msisdn=13709098877&")
 	if res := strings.Compare(authjson[1], ojson); res != 0 {
 		s.AjaxErr("Auth failed")
 	}
