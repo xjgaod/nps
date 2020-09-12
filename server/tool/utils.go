@@ -15,6 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -201,7 +203,13 @@ func Decrypt(ciphertext string) (string, error) {
 	return string(decryptedtext), nil
 }
 func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
-	keybuffer, err := ioutil.ReadFile(beego.AppConfig.String("rsa_private_file"))
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	repath := exPath + beego.AppConfig.String("rsa_private_file")
+	keybuffer, err := ioutil.ReadFile(repath)
 	if err != nil {
 		return nil, err
 	}
