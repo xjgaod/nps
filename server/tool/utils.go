@@ -232,7 +232,6 @@ func AuthHeaderAndBody(header string, body []byte) error {
 	if err != nil {
 		return errors.New("param:Authorization invalid")
 	}
-	afterAuth = strings.Replace(afterAuth, "msisdn=13709098877&", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\r", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\n", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\t", "", -1)

@@ -2,9 +2,11 @@ package proxy
 
 import (
 	"errors"
+	"github.com/astaxie/beego"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/astaxie/beego/logs"
 	"github.com/cnlh/nps/bridge"
@@ -86,7 +88,7 @@ func (s *BaseServer) CheckFlowAndConnNum(client *file.Client) error {
 //create a new connection and start bytes copying
 func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, rb []byte, tp string, f func(), flow *file.Flow, localProxy bool) error {
 	link := conn.NewLink(tp, addr, client.Cnf.Crypt, client.Cnf.Compress, c.Conn.RemoteAddr().String(), localProxy)
-	target, err := net.Dial(tp, addr)
+	target, err := DialCustom(tp, addr, beego.AppConfig.String("local_bridge_ip"))
 	if err != nil {
 		logs.Warn("connect to remote address error %s", err.Error())
 		c.Close()
@@ -99,4 +101,10 @@ func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, 
 	conn.CopyWaitGroup(target, c.Conn, link.Crypt, link.Compress, client.Rate, flow, true, rb)
 
 	return nil
+}
+func DialCustom(network, address string, localIP string) (net.Conn, error) {
+	netAddr := &net.TCPAddr{}
+	netAddr.IP = net.ParseIP(localIP)
+	d := net.Dialer{Timeout: time.Second * 10, LocalAddr: netAddr}
+	return d.Dial(network, address)
 }

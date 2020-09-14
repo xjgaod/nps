@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/astaxie/beego"
 	"github.com/cnlh/nps/server/tool"
 	"io"
 	"log"
@@ -309,12 +310,14 @@ func (s *Sock5ModeServer) Close() error {
 
 //start this udp server when main server start
 func (s *Sock5ModeServer) RunUDPServer() error {
-	replyAddr, err := net.ResolveUDPAddr("udp", s.GetHostAdd()+":0")
+	//从nginx来的用户流量需要先发送到这个ip由这个ip处理后 从另外一个可以通外网的ip出去 这个端口 最好固定 目前是tcp的端口加一 存在多个 tunnel时 需要注意不能重复或者冲突
+	replyAddr, err := net.ResolveUDPAddr("udp", beego.AppConfig.String("nginx_to_local_ip")+":"+strconv.Itoa(s.task.Port+1))
 	logs.Info("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
 		return err
 	}
+	//nginx需要转发数据到这个ip 端口上来（杭研院场景下是这样， 在其他场景下  应该是用户直接转发到这里来）
 	s.UDPConn, err = net.ListenUDP("udp", replyAddr)
 	if err != nil {
 		logs.Error(err)
@@ -329,11 +332,13 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 	defer s.UDPConn.Close()
 	for {
 		b := make([]byte, 65536)
+		//获取的addr应该为nginx 的地址（在杭研院的场景下， 在其他场景下应该是用户的地址）
 		n, addr, err := s.UDPConn.ReadFromUDP(b)
 		if err != nil {
 			logs.Error("err", s.UDPConn, err)
 			return err
 		}
+		//起一个协程处理这个请求
 		go func(addr *net.UDPAddr, b []byte) {
 			logs.Error("=================RunUDPServer read begin")
 			d, err := NewDatagramFromBytes(b)
@@ -376,8 +381,8 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 	}
 
 	logs.Info("Call udp: %#v\n", d.Address())
-
-	c, err := dial.Dial("udp", d.Address())
+	//使用连接外网的ip来进行数据转发。
+	c, err := DialCustom("udp", d.Address(), beego.AppConfig.String("local_bridge_ip"))
 	if err != nil {
 		v, ok := s.TCPUDPAssociate.Get(addr.String())
 		if ok {
@@ -434,6 +439,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 
 			logs.Info("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
 
+			//转发给nginx,由nginx送给用户
 			a, addr, port, err := ParseAddress(ue.ClientAddr.String())
 			if err != nil {
 				log.Println(err)
