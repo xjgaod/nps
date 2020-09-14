@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/astaxie/beego"
 	"io"
 	"net"
 	"os"
@@ -276,7 +277,7 @@ func (r *Request) UDP(c net.Conn, serverAddr *net.UDPAddr) (*net.UDPAddr, error)
 
 	logs.Info("Client wants to start UDP talk use", clientAddr.String())
 
-	a, addr, port, err := ParseAddress(serverAddr.String())
+	a, addr, port, err := ParseAddress(beego.AppConfig.String("nginx_ip_udp"))
 	if err != nil {
 		var p *Reply
 		if r.Atyp == ATYPIPv4 || r.Atyp == ATYPDomain {
