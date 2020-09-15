@@ -121,7 +121,7 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 		1,
 	}
 
-	localAddr := c.LocalAddr().String()
+	localAddr := beego.AppConfig.String("nginx_ip_tcp")
 	localHost, localPort, _ := net.SplitHostPort(localAddr)
 	ipBytes := net.ParseIP(localHost).To4()
 	nPort, _ := strconv.Atoi(localPort)
