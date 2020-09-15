@@ -351,6 +351,7 @@ func SetUdpSession(sess *kcp.UDPSession) {
 
 //conn1 mux conn
 func CopyWaitGroup(conn1, conn2 net.Conn, crypt bool, snappy bool, rate *rate.Rate, flow *file.Flow, isServer bool, rb []byte) {
+	//conn1 是与用户想访问的地址的连接 比如 百度， conn2 net.Conn是和用户的链接
 	//var in, out int64
 	//var wg sync.WaitGroup
 	connHandle := GetConn(conn1, crypt, snappy, rate, isServer)

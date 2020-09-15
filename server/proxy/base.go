@@ -87,7 +87,9 @@ func (s *BaseServer) CheckFlowAndConnNum(client *file.Client) error {
 
 //create a new connection and start bytes copying
 func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, rb []byte, tp string, f func(), flow *file.Flow, localProxy bool) error {
+	//addr是客户想访问的地址  比如百度， c.Conn.RemoteAddr().String()是客户的地址
 	link := conn.NewLink(tp, addr, client.Cnf.Crypt, client.Cnf.Compress, c.Conn.RemoteAddr().String(), localProxy)
+	//用本端可以出外网的地址  访问  用户想访问的地址
 	target, err := DialCustom(tp, addr, beego.AppConfig.String("local_bridge_ip"))
 	if err != nil {
 		logs.Warn("connect to remote address error %s", err.Error())
@@ -98,6 +100,7 @@ func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, 
 	if f != nil {
 		f()
 	}
+	//target 当前和用户想访问的地址的连接， c.Conn 当前和用户的连接
 	conn.CopyWaitGroup(target, c.Conn, link.Crypt, link.Compress, client.Rate, flow, true, rb)
 
 	return nil
