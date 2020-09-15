@@ -219,13 +219,13 @@ func (s *Sock5ModeServer) handleConn(c net.Conn) {
 		c.Close()
 		return
 	}
-	//buf[1] = UserPassAuth
-	//c.Write(buf)
-	//if err := s.Auth(c); err != nil {
-	//	c.Close()
-	//	logs.Warn("Validation failed:", err)
-	//	return
-	//}
+	buf[1] = UserPassAuth
+	c.Write(buf)
+	if err := s.Auth(c); err != nil {
+		c.Close()
+		logs.Warn("Validation failed:", err)
+		return
+	}
 	buf[1] = 0
 	c.Write(buf)
 	s.handleRequest(c)
