@@ -283,7 +283,7 @@ func (s *Sock5ModeServer) Start() error {
 	go func() {
 		errch <- s.RunUDPServer()
 	}()
-	return conn.NewTcpListenerAndProcess(s.task.ServerIp+":"+strconv.Itoa(s.task.Port), func(c net.Conn) {
+	return conn.NewTcpListenerAndProcess(beego.AppConfig.String("nginx_to_local_ip")+":"+strconv.Itoa(s.task.Port), func(c net.Conn) {
 		if err := s.CheckFlowAndConnNum(s.task.Client); err != nil {
 			logs.Warn("client id %d, task id %d, error %s, when socks5 connection", s.task.Client.Id, s.task.Id, err.Error())
 			c.Close()
