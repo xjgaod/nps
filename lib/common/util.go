@@ -273,14 +273,14 @@ func CopyBuffer(dst io.Writer, src io.Reader, label ...string) (written int64, e
 	buf := CopyBuff.Get()
 	defer CopyBuff.Put(buf)
 	for {
-		logs.Info("src %s begin read", src)
 		nr, er := src.Read(buf)
 		//if len(pr)>0 && pr[0] && nr > 50 {
 		//	logs.Warn(string(buf[:50]))
 		//}
 		if nr > 0 {
-			logs.Info("dst %s begin write", dst)
+			logs.Info("src %s begin read and read some message", src)
 			nw, ew := dst.Write(buf[0:nr])
+			logs.Info("dst %s begin write and write some message", dst)
 			if nw > 0 {
 				written += int64(nw)
 			}
