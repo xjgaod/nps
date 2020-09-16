@@ -372,6 +372,8 @@ func CopyWaitGroup(conn1, conn2 net.Conn, crypt bool, snappy bool, rate *rate.Ra
 	//if flow != nil {
 	//	flow.Add(in, out)
 	//}
+	logs.Info("======in direction conn1 local is %s remote is %s   ====== conn2 local is %s, remote is %s", conn1.LocalAddr().String(), conn1.RemoteAddr().String(), conn2.LocalAddr().String(), conn2.RemoteAddr().String())
+	logs.Info("======out direction conn2 local is %s remote is %s   ====== conn1 local is %s, remote is %s", conn2.LocalAddr().String(), conn2.RemoteAddr().String(), conn1.LocalAddr().String(), conn1.RemoteAddr().String())
 	err := goroutine.CopyConnsPool.Invoke(goroutine.NewConns(connHandle, conn2, flow))
 	if err != nil {
 		logs.Error(err)

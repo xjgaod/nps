@@ -1,7 +1,6 @@
 package goroutine
 
 import (
-	"github.com/astaxie/beego/logs"
 	"github.com/cnlh/nps/lib/common"
 	"github.com/cnlh/nps/lib/file"
 	"github.com/panjf2000/ants/v2"
@@ -32,7 +31,6 @@ func copyConnGroup(group interface{}) {
 		return
 	}
 	var err error
-	logs.Info("=================begin bridge, src is %s, dst is %s, direction is %d", cg.dst, cg.src, cg.n)
 	*cg.n, err = common.CopyBuffer(cg.dst, cg.src)
 	if err != nil {
 		cg.src.Close()
