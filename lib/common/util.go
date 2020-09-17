@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
-	"github.com/astaxie/beego/logs"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -278,9 +277,7 @@ func CopyBuffer(dst io.Writer, src io.Reader, label ...string) (written int64, e
 		//	logs.Warn(string(buf[:50]))
 		//}
 		if nr > 0 {
-			logs.Info("src %s begin read and read some message", src)
 			nw, ew := dst.Write(buf[0:nr])
-			logs.Info("dst %s begin write and write some message", dst)
 			if nw > 0 {
 				written += int64(nw)
 			}
