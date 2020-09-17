@@ -179,7 +179,7 @@ func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	logs.Info("server handleUDP begin")
 	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
 	caddr, err := r.UDP(c, s.UdpReplayAddr)
-	logs.Info("===========client address is", caddr)
+	logs.Debug("===========client address is", caddr)
 	if err != nil {
 		return
 	}
@@ -219,13 +219,13 @@ func (s *Sock5ModeServer) handleConn(c net.Conn) {
 		c.Close()
 		return
 	}
-	//buf[1] = UserPassAuth
-	//c.Write(buf)
-	//if err := s.Auth(c); err != nil {
-	//	c.Close()
-	//	logs.Warn("Validation failed:", err)
-	//	return
-	//}
+	buf[1] = UserPassAuth
+	c.Write(buf)
+	if err := s.Auth(c); err != nil {
+		c.Close()
+		logs.Warn("Validation failed:", err)
+		return
+	}
 	buf[1] = 0
 	c.Write(buf)
 	s.handleRequest(c)
@@ -289,7 +289,7 @@ func (s *Sock5ModeServer) Start() error {
 			c.Close()
 			return
 		}
-		logs.Info("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
+		logs.Debug("New socks5 connection,client %d,remote address %s", s.task.Client.Id, c.RemoteAddr())
 		s.handleConn(c)
 		s.task.Client.AddConn()
 	}, &s.listener)
@@ -312,7 +312,7 @@ func (s *Sock5ModeServer) Close() error {
 func (s *Sock5ModeServer) RunUDPServer() error {
 	//从nginx来的用户流量需要先发送到这个ip由这个ip处理后 从另外一个可以通外网的ip出去 这个端口 最好固定 目前是tcp的端口加一 存在多个 tunnel时 需要注意不能重复或者冲突
 	replyAddr, err := net.ResolveUDPAddr("udp", beego.AppConfig.String("nginx_to_local_ip")+":"+strconv.Itoa(s.task.Port+1))
-	logs.Info("replyAddr is", replyAddr)
+	logs.Debug("replyAddr is", replyAddr)
 	if err != nil {
 		logs.Error("build local reply addr error", err)
 		return err
@@ -340,17 +340,17 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 		}
 		//起一个协程处理这个请求
 		go func(addr *net.UDPAddr, b []byte) {
-			logs.Error("=================RunUDPServer read begin")
+			logs.Debug("=================RunUDPServer read begin")
 			d, err := NewDatagramFromBytes(b)
 			if err != nil {
-				logs.Error(err)
+				logs.Debug(err)
 				return
 			}
 			if d.Frag != 0x00 {
 				logs.Error("Ignore frag", d.Frag)
 				return
 			}
-			logs.Info("data is ", d)
+			logs.Debug("data is ", d)
 			if err := s.Handle.UDPHandle(s, addr, d); err != nil {
 				logs.Error(err)
 				return
@@ -368,7 +368,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 			return err
 		}
 
-		logs.Info("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
+		logs.Debug("Sent UDP data to remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), data)
 
 		return nil
 	}
@@ -380,7 +380,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		return send(ue, d.Data)
 	}
 
-	logs.Info("Call udp: %#v\n", d.Address())
+	logs.Debug("Call udp: %#v\n", d.Address())
 	//使用连接外网的ip来进行数据转发。
 	c, err := DialCustom("udp", d.Address(), beego.AppConfig.String("local_bridge_ip"))
 	if err != nil {
@@ -400,7 +400,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 		RemoteConn: rc,
 	}
 
-	logs.Info("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
+	logs.Debug("Created remote UDP conn for client. client: %#v server: %#v remote: %#v\n", addr.String(), ue.RemoteConn.LocalAddr().String(), d.Address())
 
 	if err := send(ue, d.Data); err != nil {
 		v, ok := s.TCPUDPAssociate.Get(ue.ClientAddr.String())
@@ -437,7 +437,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 				break
 			}
 
-			logs.Info("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
+			logs.Debug("Got UDP data from remote. client: %#v server: %#v remote: %#v data: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), b[0:n])
 
 			//转发给nginx,由nginx送给用户
 			a, addr, port, err := ParseAddress(ue.ClientAddr.String())
@@ -450,7 +450,7 @@ func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Data
 				break
 			}
 
-			logs.Info("Sent Datagram. client: %#v server: %#v remote: %#v data: %#v %#v %#v %#v %#v %#v datagram address: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), d1.Rsv, d1.Frag, d1.Atyp, d1.DstAddr, d1.DstPort, d1.Data, d1.Address())
+			logs.Debug("Sent Datagram. client: %#v server: %#v remote: %#v data: %#v %#v %#v %#v %#v %#v datagram address: %#v\n", ue.ClientAddr.String(), ue.RemoteConn.LocalAddr().String(), ue.RemoteConn.RemoteAddr().String(), d1.Rsv, d1.Frag, d1.Atyp, d1.DstAddr, d1.DstPort, d1.Data, d1.Address())
 
 		}
 	}(ue)

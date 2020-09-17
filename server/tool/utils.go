@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"github.com/astaxie/beego/logs"
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 	"io/ioutil"
@@ -228,6 +229,7 @@ func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 	return privatekey, nil
 }
 func AuthHeaderAndBody(header string, body []byte) error {
+	logs.Info("header is%s", header)
 	afterAuth, err := Decrypt(header)
 	if err != nil {
 		return errors.New("param:Authorization invalid")
@@ -235,6 +237,7 @@ func AuthHeaderAndBody(header string, body []byte) error {
 	afterAuth = strings.Replace(afterAuth, "\r", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\n", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\t", "", -1)
+	logs.Info("afterAuth is%s", afterAuth)
 	var ojson = string(body[:])
 	ojson = strings.Replace(ojson, "\r", "", -1)
 	ojson = strings.Replace(ojson, "\n", "", -1)
@@ -242,5 +245,6 @@ func AuthHeaderAndBody(header string, body []byte) error {
 	if res := strings.Compare(afterAuth, ojson); res != 0 {
 		return errors.New("Auth failed")
 	}
+	logs.Info("ojson is%s", ojson)
 	return nil
 }
