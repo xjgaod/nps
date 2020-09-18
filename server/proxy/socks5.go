@@ -201,7 +201,7 @@ func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 func (s *Sock5ModeServer) handleConn(c net.Conn) {
 	buf := make([]byte, 2)
 	if _, err := io.ReadFull(c, buf); err != nil {
-		logs.Warn("negotiation err", err)
+		logs.Debug("negotiation err", err)
 		c.Close()
 		return
 	}

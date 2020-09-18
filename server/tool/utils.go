@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -182,27 +181,19 @@ func AesEPassGet(password string) (string, error) {
 	return pass64, nil
 
 }
-func Decrypt(ciphertext string) (string, error) {
+func Decrypt(ciphertext string) ([]byte, error) {
 	privatekey, err := loadPrivateKeyFile()
 	if err != nil {
-		return "", fmt.Errorf("get pivate pem failed, error=%s\n",
+		return nil, fmt.Errorf("get pivate pem failed, error=%s\n",
 			err.Error())
 	}
 	decodedtext, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
-		return "", fmt.Errorf("base64 decode failed, error=%s\n",
+		return nil, fmt.Errorf("base64 decode failed, error=%s\n",
 			err.Error())
 	}
 
-	sha256hash := sha256.New()
-	decryptedtext, err := rsa.DecryptOAEP(sha256hash, rand.Reader,
-		privatekey, decodedtext, nil)
-	if err != nil {
-		return "", fmt.Errorf("RSA decrypt failed, error=%s\n",
-			err.Error())
-	}
-
-	return string(decryptedtext), nil
+	return rsa.DecryptPKCS1v15(rand.Reader, privatekey, decodedtext)
 }
 func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 	ex, err := os.Executable()
@@ -230,10 +221,11 @@ func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 }
 func AuthHeaderAndBody(header string, body []byte) error {
 	logs.Info("header is%s", header)
-	afterAuth, err := Decrypt(header)
+	auth, err := Decrypt(header)
 	if err != nil {
 		return errors.New("param:Authorization invalid")
 	}
+	var afterAuth = string(auth)
 	afterAuth = strings.Replace(afterAuth, "\r", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\n", "", -1)
 	afterAuth = strings.Replace(afterAuth, "\t", "", -1)
