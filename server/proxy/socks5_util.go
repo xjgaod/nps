@@ -276,7 +276,13 @@ func (r *Request) UDP(c net.Conn, serverAddr *net.UDPAddr) (*net.UDPAddr, error)
 
 	logs.Info("Client wants to start UDP talk use", clientAddr.String())
 
-	a, addr, port, err := ParseAddress(beego.AppConfig.String("nginx_ip_udp"))
+	localAddr := beego.AppConfig.String("nginx_ip_udp")
+	if "0.0.0.0:0" == localAddr || "" == localAddr {
+		logs.Debug("no nginx use")
+		localAddr = serverAddr.String()
+	}
+
+	a, addr, port, err := ParseAddress(localAddr)
 	if err != nil {
 		var p *Reply
 		if r.Atyp == ATYPIPv4 || r.Atyp == ATYPDomain {

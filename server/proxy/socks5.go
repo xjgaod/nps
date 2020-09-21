@@ -122,6 +122,10 @@ func (s *Sock5ModeServer) sendReply(c net.Conn, rep uint8) {
 	}
 
 	localAddr := beego.AppConfig.String("nginx_ip_tcp")
+	if "0.0.0.0:0" == localAddr || "" == localAddr {
+		logs.Debug("no nginx use")
+		localAddr = c.LocalAddr().String()
+	}
 	localHost, localPort, _ := net.SplitHostPort(localAddr)
 	ipBytes := net.ParseIP(localHost).To4()
 	nPort, _ := strconv.Atoi(localPort)
@@ -177,7 +181,6 @@ func (s *Sock5ModeServer) sendUdpReply(writeConn net.Conn, c net.Conn, rep uint8
 
 func (h *DefaultHandle) handleUDP(s *Sock5ModeServer, c net.Conn, r *Request) {
 	logs.Info("server handleUDP begin")
-	//replyAddr, err := net.ResolveUDPAddr("udp", "172.19.201.144"+":0")
 	caddr, err := r.UDP(c, s.UdpReplayAddr)
 	logs.Debug("===========client address is", caddr)
 	if err != nil {
