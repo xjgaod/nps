@@ -8,7 +8,6 @@ import (
 	"github.com/astaxie/beego"
 	"io"
 	"net"
-	"os"
 	"strconv"
 
 	"github.com/astaxie/beego/logs"
@@ -403,7 +402,7 @@ func NewRequestFrom(r net.Conn) (*Request, error) {
 		return nil, err
 	}
 
-	logs.Info("Got Request: %#v %#v %#v %#v %#v %#v\n", bb[0], bb[1], bb[2], bb[3], addr, port)
+	logs.Debug("Got Request: %#v %#v %#v %#v %#v %#v\n", bb[0], bb[1], bb[2], bb[3], addr, port)
 
 	return &Request{
 		Ver:     bb[0],
@@ -418,7 +417,7 @@ func (s *Sock5ModeServer) GetHostAdd() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return "0.0.0.0"
 	}
 	for _, address := range addrs {
 		// 检查ip地址判断是否回环地址
