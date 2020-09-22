@@ -229,8 +229,8 @@ func (s *Sock5ModeServer) handleConn(c net.Conn) {
 		logs.Warn("Validation failed:", err)
 		return
 	}
-	buf[1] = 0
-	c.Write(buf)
+	//buf[1] = 0
+	//c.Write(buf)
 	s.handleRequest(c)
 }
 
