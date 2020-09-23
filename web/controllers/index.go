@@ -159,23 +159,28 @@ func (s *IndexController) MuxAddUser() {
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
+	var cmd []interface{}
 	for _, user := range users.Users {
 		pass, err := tool.AesDPassGet(user.PassWord)
 		if err != nil {
 			s.AjaxErr(err.Error())
 		}
-		var result bool
-		result, err = rdb.SetNX(user.Name, pass, 0).Result()
-		if !result {
-			s.AjaxErr("user:" + user.Name + "already exist")
-		}
-		if err != nil {
-			_ = rdb.Close()
-			s.AjaxErr(err.Error())
+		cmd = append(cmd, user.Name)
+		cmd = append(cmd, pass)
+	}
+
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	result, _ := rdb.MSetNX(cmd...).Result()
+	if !result {
+		for _, user := range users.Users {
+			value := rdb.Get(user.Name)
+			if "" != value.Val() {
+				_ = rdb.Close()
+				s.AjaxErr("user:" + user.Name + "already exist")
+			}
 		}
 	}
 	_ = rdb.Close()
@@ -194,20 +199,23 @@ func (s *IndexController) MuxModifyUser() {
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
+	var cmd []interface{}
 	for _, user := range users.Users {
 		pass, err := tool.AesDPassGet(user.PassWord)
 		if err != nil {
 			s.AjaxErr(err.Error())
 		}
-		err = rdb.Set(user.Name, pass, 0).Err()
-		if err != nil {
-			_ = rdb.Close()
-			s.AjaxErr(err.Error())
-		}
+		cmd = append(cmd, user.Name)
+		cmd = append(cmd, pass)
+	}
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		s.AjaxErr(err.Error())
+	}
+	err = rdb.MSet(cmd...).Err()
+	if err != nil {
+		_ = rdb.Close()
+		s.AjaxErr(err.Error())
 	}
 	_ = rdb.Close()
 	s.AjaxOk("mux modify user success")
