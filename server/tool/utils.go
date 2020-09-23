@@ -181,19 +181,35 @@ func AesEPassGet(password string) (string, error) {
 	return pass64, nil
 
 }
-func Decrypt(ciphertext string) ([]byte, error) {
+func Decrypt(ciphertext string) (string, error) {
 	privatekey, err := loadPrivateKeyFile()
 	if err != nil {
-		return nil, fmt.Errorf("get pivate pem failed, error=%s\n",
+		return "", fmt.Errorf("get pivate pem failed, error=%s\n",
 			err.Error())
 	}
-	decodedtext, err := base64.StdEncoding.DecodeString(ciphertext)
-	if err != nil {
-		return nil, fmt.Errorf("base64 decode failed, error=%s\n",
-			err.Error())
+	raw, err := base64.StdEncoding.DecodeString(ciphertext)
+	chunks := split([]byte(raw), 256)
+	buffer := bytes.NewBufferString("")
+	for _, chunk := range chunks {
+		decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privatekey, chunk)
+		if err != nil {
+			return "", err
+		}
+		buffer.Write(decrypted)
 	}
-
-	return rsa.DecryptPKCS1v15(rand.Reader, privatekey, decodedtext)
+	return buffer.String(), err
+}
+func split(buf []byte, lim int) [][]byte {
+	var chunk []byte
+	chunks := make([][]byte, 0, len(buf)/lim+1)
+	for len(buf) >= lim {
+		chunk, buf = buf[:lim], buf[lim:]
+		chunks = append(chunks, chunk)
+	}
+	if len(buf) > 0 {
+		chunks = append(chunks, buf[:len(buf)])
+	}
+	return chunks
 }
 func loadPrivateKeyFile() (*rsa.PrivateKey, error) {
 	ex, err := os.Executable()
@@ -225,16 +241,15 @@ func AuthHeaderAndBody(header string, body []byte) error {
 	if err != nil {
 		return errors.New("param:Authorization invalid")
 	}
-	var afterAuth = string(auth)
-	afterAuth = strings.Replace(afterAuth, "\r", "", -1)
-	afterAuth = strings.Replace(afterAuth, "\n", "", -1)
-	afterAuth = strings.Replace(afterAuth, "\t", "", -1)
-	logs.Debug("afterAuth is%s", afterAuth)
+	auth = strings.Replace(auth, "\r", "", -1)
+	auth = strings.Replace(auth, "\n", "", -1)
+	auth = strings.Replace(auth, "\t", "", -1)
+	logs.Debug("afterAuth is%s", auth)
 	var ojson = string(body[:])
 	ojson = strings.Replace(ojson, "\r", "", -1)
 	ojson = strings.Replace(ojson, "\n", "", -1)
 	ojson = strings.Replace(ojson, "\t", "", -1)
-	if res := strings.Compare(afterAuth, ojson); res != 0 {
+	if res := strings.Compare(auth, ojson); res != 0 {
 		return errors.New("Auth failed")
 	}
 	logs.Debug("ojson is%s", ojson)
