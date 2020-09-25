@@ -55,6 +55,7 @@ const (
 	userAuthVersion = uint8(1)
 	authSuccess     = uint8(0)
 	authFailure     = uint8(1)
+	hyAuthVersion   = uint8(128)
 )
 
 type Sock5ModeServer struct {
@@ -222,19 +223,96 @@ func (s *Sock5ModeServer) handleConn(c net.Conn) {
 		c.Close()
 		return
 	}
-	buf[1] = UserPassAuth
-	c.Write(buf)
-	if err := s.Auth(c); err != nil {
-		c.Close()
-		logs.Warn("Validation failed:", err)
-		return
+	authVertion := beego.AppConfig.String("auth_version")
+	switch authVertion {
+	case "2":
+		//用户密码验证方式
+		buf[1] = UserPassAuth
+		c.Write(buf)
+		if err := s.Auth(c); err != nil {
+			c.Close()
+			logs.Warn("Validation failed:", err)
+			return
+		}
+	case "128":
+		//杭研院版本采用随机数验证方式，故此处不再返回2， 而是介于80-fe之间的随机数
+		var challenge = Int2Byte(RandInt64())
+		buf[1] = challenge[0]
+		c.Write(buf)
+		if err := s.hyAuth(c, challenge); err != nil {
+			c.Close()
+			logs.Warn("Validation failed:", err)
+			return
+		}
+	default:
+		buf[1] = 0
+		c.Write(buf)
 	}
-	//buf[1] = 0
-	//c.Write(buf)
 	s.handleRequest(c)
 }
 
-//socks5 auth
+//socks5 auth 杭研院版本验证方式
+func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
+	header := []byte{0, 0}
+	if _, err := io.ReadAtLeast(c, header, 2); err != nil {
+		return err
+	}
+	//杭研院版本验证方式
+	if header[0] != hyAuthVersion {
+		return errors.New("验证方式不被支持")
+	}
+	userLen := int(header[1])
+	user := make([]byte, userLen)
+	if _, err := io.ReadAtLeast(c, user, userLen); err != nil {
+		return err
+	}
+	//获取到用户名
+	username := string(user)
+	if _, err := c.Read(header[:1]); err != nil {
+		return errors.New("密码长度获取错误")
+	}
+
+	//获取 client端传送过来的hmac计算结果
+	passLen := int(header[0])
+	pass := make([]byte, passLen)
+	if _, err := io.ReadAtLeast(c, pass, passLen); err != nil {
+		return err
+	}
+	remoteHMAC := string(pass)
+
+	//从数据库查询密码
+	rdb, err := tool.GetRdb()
+	if err != nil {
+		_ = rdb.Close()
+		return err
+	}
+	p, err := rdb.Get(username).Result()
+	_ = rdb.Close()
+	if err != nil {
+		return errors.New("验证不通过")
+	}
+
+	//根据随机数和拼接的用户名密码计算本地的验证码
+	var message = username + p
+	localHMAC := GenerateSign([]byte{challenge[0]}, []byte(message))
+
+	//验证
+	if localHMAC != "" && localHMAC == remoteHMAC {
+		if _, err := c.Write([]byte{hyAuthVersion, authSuccess}); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		if _, err := c.Write([]byte{hyAuthVersion, authFailure}); err != nil {
+			return err
+		}
+		return errors.New("验证不通过")
+	}
+}
+
+/**
+用户密码验证方式
+*/
 func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	header := []byte{0, 0}
 	if _, err := io.ReadAtLeast(c, header, 2); err != nil {
@@ -243,29 +321,39 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	if header[0] != userAuthVersion {
 		return errors.New("验证方式不被支持")
 	}
+
 	userLen := int(header[1])
 	user := make([]byte, userLen)
 	if _, err := io.ReadAtLeast(c, user, userLen); err != nil {
 		return err
 	}
+	//获取到用户名
+	username := string(user)
 	if _, err := c.Read(header[:1]); err != nil {
 		return errors.New("密码长度获取错误")
 	}
+
+	//获取 client端传送过来的hmac计算结果
 	passLen := int(header[0])
 	pass := make([]byte, passLen)
 	if _, err := io.ReadAtLeast(c, pass, passLen); err != nil {
 		return err
 	}
+	password := string(pass)
+
+	//从数据库查询密码
 	rdb, err := tool.GetRdb()
 	if err != nil {
+		_ = rdb.Close()
 		return err
 	}
-	p, err := rdb.Get(string(user)).Result()
+	p, err := rdb.Get(username).Result()
 	_ = rdb.Close()
 	if err != nil {
 		return errors.New("验证不通过")
 	}
-	if p != "" && string(pass) == p {
+	//验证
+	if p != "" && p == password {
 		if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
 			return err
 		}

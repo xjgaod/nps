@@ -2,13 +2,19 @@ package proxy
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/astaxie/beego"
 	"io"
+	"math/rand"
 	"net"
 	"strconv"
+	"time"
+	"unsafe"
 
 	"github.com/astaxie/beego/logs"
 )
@@ -441,4 +447,32 @@ func (s *Sock5ModeServer) ToAddress(addr []byte, port []byte) string {
 	h = net.IP(addr).String()
 	p = strconv.Itoa(int(binary.BigEndian.Uint16(port)))
 	return net.JoinHostPort(h, p)
+}
+
+/**
+获取随机数
+*/
+func RandInt64() int {
+	rand.Seed(time.Now().Unix())
+	return rand.Intn(124) + 128
+}
+
+/**
+hamc 生成验证码
+*/
+func GenerateSign(data, key []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(data)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func Int2Byte(data int) (ret []byte) {
+	var len uintptr = unsafe.Sizeof(data)
+	ret = make([]byte, len)
+	var tmp int = 0xff
+	var index uint = 0
+	for index = 0; index < uint(len); index++ {
+		ret[index] = byte((tmp << (index * 8) & data) >> (index * 8))
+	}
+	return ret
 }
