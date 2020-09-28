@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"github.com/astaxie/beego"
 	"github.com/cnlh/nps/server/tool"
@@ -278,8 +279,7 @@ func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
 	if _, err := io.ReadAtLeast(c, pass, passLen); err != nil {
 		return err
 	}
-	remoteHMAC := string(pass)
-
+	remoteHMAC := hex.EncodeToString(pass)
 	//从数据库查询密码
 	rdb, err := tool.GetRdb()
 	if err != nil {
