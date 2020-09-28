@@ -258,7 +258,7 @@ func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
 		return err
 	}
 	//杭研院版本验证方式
-	if header[0] != hyAuthVersion {
+	if header[0] != userAuthVersion {
 		return errors.New("验证方式不被支持")
 	}
 	userLen := int(header[1])
