@@ -289,21 +289,24 @@ func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
 	p, err := rdb.Get(username).Result()
 	_ = rdb.Close()
 	if err != nil {
-		return errors.New("验证不通过")
+		return errors.New("没有这个用户")
 	}
-
+	logs.Debug("pass is%s", p)
 	//根据随机数和拼接的用户名密码计算本地的验证码
 	var message = username + p
+	logs.Debug("message is%s", message)
+	logs.Debug("challenge is%s", string(challenge[0]))
 	localHMAC := GenerateSign([]byte{challenge[0]}, []byte(message))
-
+	logs.Debug("localHMAC is%s", localHMAC)
+	logs.Debug("remoteHMAC is%s", remoteHMAC)
 	//验证
 	if localHMAC != "" && localHMAC == remoteHMAC {
-		if _, err := c.Write([]byte{hyAuthVersion, authSuccess}); err != nil {
+		if _, err := c.Write([]byte{userAuthVersion, authSuccess}); err != nil {
 			return err
 		}
 		return nil
 	} else {
-		if _, err := c.Write([]byte{hyAuthVersion, authFailure}); err != nil {
+		if _, err := c.Write([]byte{userAuthVersion, authFailure}); err != nil {
 			return err
 		}
 		return errors.New("验证不通过")
