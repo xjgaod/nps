@@ -117,6 +117,13 @@ func GetRdb() (*redis.Client, error) {
 	}
 	return rdb, nil
 }
+func GetCluster() *redis.ClusterClient {
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:    []string{"redis-cluster.test.com:port"}, //set redis cluster url
+		Password: "mypassword",                            //set password
+	})
+	return client
+}
 func pKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)

@@ -106,8 +106,15 @@ func (s *BaseServer) DealClient(c *conn.Conn, client *file.Client, addr string, 
 	return nil
 }
 func DialCustom(network, address string, localIP string) (net.Conn, error) {
-	netAddr := &net.TCPAddr{}
-	netAddr.IP = net.ParseIP(localIP)
-	d := net.Dialer{Timeout: time.Second * 10, LocalAddr: netAddr}
-	return d.Dial(network, address)
+	if network == "tcp" {
+		netAddr := &net.TCPAddr{}
+		netAddr.IP = net.ParseIP(localIP)
+		d := net.Dialer{Timeout: time.Second * 10, LocalAddr: netAddr}
+		return d.Dial(network, address)
+	} else {
+		netAddr := &net.UDPAddr{}
+		netAddr.IP = net.ParseIP(localIP)
+		d := net.Dialer{Timeout: time.Second * 10, LocalAddr: netAddr}
+		return d.Dial(network, address)
+	}
 }
