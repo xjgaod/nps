@@ -304,7 +304,7 @@ func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
 		if _, err := c.Write([]byte{userAuthVersion, authFailure}); err != nil {
 			return err
 		}
-		return errors.New("验证不通过" + localHMAC + "==" + remoteHMAC)
+		return errors.New(username + ":验证不通过" + localHMAC + "==" + remoteHMAC)
 	}
 }
 
