@@ -100,7 +100,6 @@ func (s *Sock5ModeServer) handleRequest(c net.Conn) {
 		logs.Info(err)
 		return
 	}
-	s.Handle = &DefaultHandle{}
 	switch r.Cmd {
 	case connectMethod:
 		s.handleConnect(c, r)
@@ -368,6 +367,7 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 func (s *Sock5ModeServer) Start() error {
 	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
 	s.UDPExchanges = cache.New(cache.NoExpiration, cache.NoExpiration)
+	s.Handle = &DefaultHandle{}
 	errch := make(chan error)
 	go func() {
 		errch <- s.RunUDPServer()
