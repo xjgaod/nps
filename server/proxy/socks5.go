@@ -449,7 +449,7 @@ func (s *Sock5ModeServer) RunUDPServer() error {
 	return nil
 }
 
-// UDPHandle auto handle packet. You may prefer to do yourself.
+// UDP Handle auto handle packet. You may prefer to do yourself.
 func (h *DefaultHandle) UDPHandle(s *Sock5ModeServer, addr *net.UDPAddr, d *Datagram) error {
 	send := func(ue *UDPExchange, data []byte) error {
 		_, err := ue.RemoteConn.Write(data)
