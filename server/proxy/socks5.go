@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/astaxie/beego"
 	"github.com/cnlh/nps/server/tool"
+	"github.com/go-redis/redis"
 	"io"
 	"log"
 	"net"
@@ -76,6 +77,7 @@ type Sock5ModeServer struct {
 	UDPSessionTime    int // If client does't send address, use this fixed time
 	Handle            Handler
 	TCPUDPAssociate   *cache.Cache
+	RedisCluClinent   *redis.ClusterClient
 }
 type Handler interface {
 	// Request has not been replied yet
@@ -279,18 +281,32 @@ func (s *Sock5ModeServer) hyAuth(c net.Conn, challenge []byte) error {
 		return err
 	}
 	remoteHMAC := hex.EncodeToString(pass)
+
 	//从数据库查询密码
-	rdb, err := tool.GetRdb()
-	if err != nil {
+	var p = ""
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		pass, err := s.RedisCluClinent.Get(username).Result()
+		if err != nil {
+			return errors.New("验证不通过,查询用户失败")
+		}
+		p = pass
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			_ = rdb.Close()
+			return err
+		}
+		pass, err := rdb.Get(username).Result()
 		_ = rdb.Close()
-		return err
-	}
-	p, err := rdb.Get(username).Result()
-	_ = rdb.Close()
-	if err != nil {
-		return errors.New("没有这个用户")
+		if err != nil {
+			return errors.New("验证不通过,查询用户失败")
+		}
+		p = pass
 	}
 	//根据随机数和拼接的用户名密码计算本地的验证码
+	if p == "" {
+		return errors.New("验证不通过,用户不存在")
+	}
 	var message = username + p
 	localHMAC := GenerateSign([]byte{challenge[0]}, []byte(message))
 	//验证
@@ -339,15 +355,25 @@ func (s *Sock5ModeServer) Auth(c net.Conn) error {
 	password := string(pass)
 
 	//从数据库查询密码
-	rdb, err := tool.GetRdb()
-	if err != nil {
+	var p = ""
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		pass, err := s.RedisCluClinent.Get(username).Result()
+		if err != nil {
+			return errors.New("验证不通过")
+		}
+		p = pass
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			_ = rdb.Close()
+			return err
+		}
+		pass, err := rdb.Get(username).Result()
 		_ = rdb.Close()
-		return err
-	}
-	p, err := rdb.Get(username).Result()
-	_ = rdb.Close()
-	if err != nil {
-		return errors.New("验证不通过")
+		if err != nil {
+			return errors.New("验证不通过")
+		}
+		p = pass
 	}
 	//验证
 	if p != "" && p == password {
@@ -368,6 +394,14 @@ func (s *Sock5ModeServer) Start() error {
 	s.TCPUDPAssociate = cache.New(cache.NoExpiration, cache.NoExpiration)
 	s.UDPExchanges = cache.New(cache.NoExpiration, cache.NoExpiration)
 	s.Handle = &DefaultHandle{}
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			return err
+		}
+		s.RedisCluClinent = rdb
+	}
 	errch := make(chan error)
 	go func() {
 		errch <- s.RunUDPServer()

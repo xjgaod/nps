@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 	"github.com/cnlh/nps/lib/file"
 	"github.com/cnlh/nps/server"
 	"github.com/cnlh/nps/server/tool"
@@ -97,25 +98,41 @@ func (s *IndexController) AddUser() {
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
+
 	pass, err := tool.AesDPassGet(user.PassWord)
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
 	var result bool
-	result, err = rdb.SetNX(user.Name, pass, 0).Result()
-	_ = rdb.Close()
-	if !result {
-		s.AjaxErr("user:" + user.Name + "already exist")
-	}
-	if err != nil {
-		s.AjaxErr(err.Error())
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		result, err = rdb.SetNX(user.Name, pass, 0).Result()
+		_ = rdb.Close()
+		if !result {
+			s.AjaxErr("user:" + user.Name + "already exist")
+		}
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	} else {
-		s.AjaxOk("add user success")
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		result, err = rdb.SetNX(user.Name, pass, 0).Result()
+		_ = rdb.Close()
+		if !result {
+			s.AjaxErr("user:" + user.Name + "already exist")
+		}
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	}
+	s.AjaxOk("add user success")
 }
 func (s *IndexController) ModifyUser() {
 	if s.Ctx.Request.Method != "PUT" {
@@ -130,21 +147,34 @@ func (s *IndexController) ModifyUser() {
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
 	pass, err := tool.AesDPassGet(user.PassWord)
 	if err != nil {
 		s.AjaxErr(err.Error())
 	}
-	err = rdb.Set(user.Name, pass, 0).Err()
-	_ = rdb.Close()
-	if err != nil {
-		s.AjaxErr(err.Error())
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.Set(user.Name, pass, 0).Err()
+		_ = rdb.Close()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	} else {
-		s.AjaxOk("modify user success")
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.Set(user.Name, pass, 0).Err()
+		_ = rdb.Close()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	}
+	s.AjaxOk("modify user success")
+
 }
 func (s *IndexController) MuxAddUser() {
 	if s.Ctx.Request.Method != "POST" {
@@ -168,23 +198,42 @@ func (s *IndexController) MuxAddUser() {
 		cmd = append(cmd, user.Name)
 		cmd = append(cmd, pass)
 	}
-
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
-	result, _ := rdb.MSetNX(cmd...).Result()
-	if !result {
-		for _, user := range users.Users {
-			value := rdb.Get(user.Name)
-			if "" != value.Val() {
-				_ = rdb.Close()
-				s.AjaxErr("user:" + user.Name + "already exist")
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		result, _ := rdb.MSetNX(cmd...).Result()
+		if !result {
+			for _, user := range users.Users {
+				value := rdb.Get(user.Name)
+				if "" != value.Val() {
+					_ = rdb.Close()
+					s.AjaxErr("user:" + user.Name + "already exist")
+				}
 			}
 		}
+		_ = rdb.Close()
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		result, _ := rdb.MSetNX(cmd...).Result()
+		if !result {
+			for _, user := range users.Users {
+				value := rdb.Get(user.Name)
+				if "" != value.Val() {
+					_ = rdb.Close()
+					s.AjaxErr("user:" + user.Name + "already exist")
+				}
+			}
+		}
+		_ = rdb.Close()
 	}
-	_ = rdb.Close()
 	s.AjaxOk("mux add user success")
+
 }
 func (s *IndexController) MuxModifyUser() {
 	if s.Ctx.Request.Method != "PUT" {
@@ -208,16 +257,31 @@ func (s *IndexController) MuxModifyUser() {
 		cmd = append(cmd, user.Name)
 		cmd = append(cmd, pass)
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
-	err = rdb.MSet(cmd...).Err()
-	if err != nil {
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.MSet(cmd...).Err()
+		if err != nil {
+			_ = rdb.Close()
+			s.AjaxErr(err.Error())
+		}
 		_ = rdb.Close()
-		s.AjaxErr(err.Error())
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.MSet(cmd...).Err()
+		if err != nil {
+			_ = rdb.Close()
+			s.AjaxErr(err.Error())
+		}
+		_ = rdb.Close()
 	}
-	_ = rdb.Close()
+
 	s.AjaxOk("mux modify user success")
 }
 
@@ -234,18 +298,35 @@ func (s *IndexController) MuxDelUser() {
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
-	for _, user := range users.Users {
-		err = rdb.Del(user.Name).Err()
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
 		if err != nil {
-			_ = rdb.Close()
+			logs.Debug("get redis cluster failed, error is %s", err)
 			s.AjaxErr(err.Error())
 		}
+		for _, user := range users.Users {
+			err := rdb.Del(user.Name).Err()
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
+			}
+		}
+		_ = rdb.Close()
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		for _, user := range users.Users {
+			err = rdb.Del(user.Name).Err()
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
+			}
+		}
+		_ = rdb.Close()
 	}
-	_ = rdb.Close()
+
 	s.AjaxOk("mux delete user success")
 }
 func (s *IndexController) DelUser() {
@@ -261,17 +342,29 @@ func (s *IndexController) DelUser() {
 	if err := json.Unmarshal(data, &user); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	rdb, err := tool.GetRdb()
-	if err != nil {
-		s.AjaxErr(err.Error())
-	}
-	err = rdb.Del(user.Name).Err()
-	_ = rdb.Close()
-	if err != nil {
-		s.AjaxErr(err.Error())
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.Del(user.Name).Err()
+		_ = rdb.Close()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	} else {
-		s.AjaxOk(" delete user success")
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		err = rdb.Del(user.Name).Err()
+		_ = rdb.Close()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
 	}
+	s.AjaxOk(" delete user success")
 }
 func (s *IndexController) Add() {
 	if s.Ctx.Request.Method == "GET" {

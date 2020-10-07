@@ -117,12 +117,16 @@ func GetRdb() (*redis.Client, error) {
 	}
 	return rdb, nil
 }
-func GetCluster() *redis.ClusterClient {
-	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:    []string{"redis-cluster.test.com:port"}, //set redis cluster url
-		Password: "mypassword",                            //set password
+func GetCluster() (*redis.ClusterClient, error) {
+	clusterIp := beego.AppConfig.String("redis_host")
+	addr := strings.Split(clusterIp, ",")
+	var client *redis.ClusterClient
+	client = redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:    addr,
+		Password: beego.AppConfig.String("redis_passwd"),
 	})
-	return client
+	err := client.Ping().Err()
+	return client, err
 }
 func pKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
