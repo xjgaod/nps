@@ -189,33 +189,40 @@ func (s *IndexController) MuxAddUser() {
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	var cmd []interface{}
-	for _, user := range users.Users {
-		pass, err := tool.AesDPassGet(user.PassWord)
-		if err != nil {
-			s.AjaxErr(err.Error())
-		}
-		cmd = append(cmd, user.Name)
-		cmd = append(cmd, pass)
-	}
 	if beego.AppConfig.String("redis_cluster") == "true" {
 		rdb, err := tool.GetCluster()
 		if err != nil {
 			logs.Debug("get redis cluster failed, error is %s", err)
 			s.AjaxErr(err.Error())
 		}
-		result, _ := rdb.MSetNX(cmd...).Result()
-		if !result {
-			for _, user := range users.Users {
-				value := rdb.Get(user.Name)
-				if "" != value.Val() {
-					_ = rdb.Close()
-					s.AjaxErr("user:" + user.Name + "already exist")
-				}
+		for _, user := range users.Users {
+			pass, err := tool.AesDPassGet(user.PassWord)
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
 			}
+			result, err := rdb.SetNX(user.Name, pass, 0).Result()
+			if !result {
+				_ = rdb.Close()
+				s.AjaxErr("user:" + user.Name + "already exist")
+			}
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
+			}
+
 		}
 		_ = rdb.Close()
 	} else {
+		var cmd []interface{}
+		for _, user := range users.Users {
+			pass, err := tool.AesDPassGet(user.PassWord)
+			if err != nil {
+				s.AjaxErr(err.Error())
+			}
+			cmd = append(cmd, user.Name)
+			cmd = append(cmd, pass)
+		}
 		rdb, err := tool.GetRdb()
 		if err != nil {
 			s.AjaxErr(err.Error())
@@ -248,28 +255,35 @@ func (s *IndexController) MuxModifyUser() {
 	if err := json.Unmarshal(data, &users); err != nil {
 		s.AjaxErr(err.Error())
 	}
-	var cmd []interface{}
-	for _, user := range users.Users {
-		pass, err := tool.AesDPassGet(user.PassWord)
-		if err != nil {
-			s.AjaxErr(err.Error())
-		}
-		cmd = append(cmd, user.Name)
-		cmd = append(cmd, pass)
-	}
 	if beego.AppConfig.String("redis_cluster") == "true" {
 		rdb, err := tool.GetCluster()
 		if err != nil {
 			logs.Debug("get redis cluster failed, error is %s", err)
 			s.AjaxErr(err.Error())
 		}
-		err = rdb.MSet(cmd...).Err()
-		if err != nil {
-			_ = rdb.Close()
-			s.AjaxErr(err.Error())
+		for _, user := range users.Users {
+			pass, err := tool.AesDPassGet(user.PassWord)
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
+			}
+			err = rdb.Set(user.Name, pass, 0).Err()
+			if err != nil {
+				_ = rdb.Close()
+				s.AjaxErr(err.Error())
+			}
 		}
 		_ = rdb.Close()
 	} else {
+		var cmd []interface{}
+		for _, user := range users.Users {
+			pass, err := tool.AesDPassGet(user.PassWord)
+			if err != nil {
+				s.AjaxErr(err.Error())
+			}
+			cmd = append(cmd, user.Name)
+			cmd = append(cmd, pass)
+		}
 		rdb, err := tool.GetRdb()
 		if err != nil {
 			s.AjaxErr(err.Error())
