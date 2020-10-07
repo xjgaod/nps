@@ -113,7 +113,7 @@ func (s *IndexController) AddUser() {
 		result, err = rdb.SetNX(user.Name, pass, 0).Result()
 		_ = rdb.Close()
 		if !result {
-			s.AjaxErr("user:" + user.Name + "already exist")
+			s.AjaxErr("user:" + user.Name + " already exist")
 		}
 		if err != nil {
 			s.AjaxErr(err.Error())
@@ -204,7 +204,7 @@ func (s *IndexController) MuxAddUser() {
 			result, err := rdb.SetNX(user.Name, pass, 0).Result()
 			if !result {
 				_ = rdb.Close()
-				s.AjaxErr("user:" + user.Name + "already exist")
+				s.AjaxErr("user:" + user.Name + " already exist")
 			}
 			if err != nil {
 				_ = rdb.Close()
