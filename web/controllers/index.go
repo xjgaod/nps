@@ -89,6 +89,7 @@ func (s *IndexController) AddUser() {
 	if s.Ctx.Request.Method != "POST" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin add user")
 	var user User
 	data := s.Ctx.Input.RequestBody
 	auth := s.Ctx.Request.Header.Get("Authorization")
@@ -132,12 +133,14 @@ func (s *IndexController) AddUser() {
 			s.AjaxErr(err.Error())
 		}
 	}
+	logs.Debug("end add user")
 	s.AjaxOk("add user success")
 }
 func (s *IndexController) ModifyUser() {
 	if s.Ctx.Request.Method != "PUT" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin modify user")
 	var user User
 	data := s.Ctx.Input.RequestBody
 	auth := s.Ctx.Request.Header.Get("Authorization")
@@ -173,6 +176,7 @@ func (s *IndexController) ModifyUser() {
 			s.AjaxErr(err.Error())
 		}
 	}
+	logs.Debug("end modify user")
 	s.AjaxOk("modify user success")
 
 }
@@ -180,6 +184,7 @@ func (s *IndexController) MuxAddUser() {
 	if s.Ctx.Request.Method != "POST" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin mux add  user")
 	var users MuxUser
 	auth := s.Ctx.Request.Header.Get("Authorization")
 	data := s.Ctx.Input.RequestBody
@@ -239,6 +244,7 @@ func (s *IndexController) MuxAddUser() {
 		}
 		_ = rdb.Close()
 	}
+	logs.Debug("end mux add  user")
 	s.AjaxOk("mux add user success")
 
 }
@@ -246,6 +252,7 @@ func (s *IndexController) MuxModifyUser() {
 	if s.Ctx.Request.Method != "PUT" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin mux modify user")
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
 	auth := s.Ctx.Request.Header.Get("Authorization")
@@ -295,7 +302,7 @@ func (s *IndexController) MuxModifyUser() {
 		}
 		_ = rdb.Close()
 	}
-
+	logs.Debug("end mux modify user")
 	s.AjaxOk("mux modify user success")
 }
 
@@ -303,6 +310,7 @@ func (s *IndexController) MuxDelUser() {
 	if s.Ctx.Request.Method != "DELETE" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin mux delete user")
 	var users MuxUser
 	data := s.Ctx.Input.RequestBody
 	auth := s.Ctx.Request.Header.Get("Authorization")
@@ -340,13 +348,14 @@ func (s *IndexController) MuxDelUser() {
 		}
 		_ = rdb.Close()
 	}
-
+	logs.Debug("end mux delete user")
 	s.AjaxOk("mux delete user success")
 }
 func (s *IndexController) DelUser() {
 	if s.Ctx.Request.Method != "DELETE" {
 		s.AjaxErr("unsupport method type")
 	}
+	logs.Debug("begin delete user")
 	var user User
 	data := s.Ctx.Input.RequestBody
 	auth := s.Ctx.Request.Header.Get("Authorization")
@@ -378,7 +387,41 @@ func (s *IndexController) DelUser() {
 			s.AjaxErr(err.Error())
 		}
 	}
+	logs.Debug("end delete user")
 	s.AjaxOk(" delete user success")
+}
+
+func (s *IndexController) GetUser() {
+	if s.Ctx.Request.Method != "GET" {
+		s.AjaxErr("unsupport method type")
+	}
+	logs.Debug("begin get user")
+	query := s.Ctx.Input.Query("username")
+
+	if beego.AppConfig.String("redis_cluster") == "true" {
+		rdb, err := tool.GetCluster()
+		if err != nil {
+			logs.Debug("get redis cluster failed, error is %s", err)
+			s.AjaxErr(err.Error())
+		}
+		value := rdb.Get(query)
+		_ = rdb.Close()
+		if "" == value.Val() {
+			s.AjaxErr("user does not exist")
+		}
+	} else {
+		rdb, err := tool.GetRdb()
+		if err != nil {
+			s.AjaxErr(err.Error())
+		}
+		value := rdb.Get(query)
+		_ = rdb.Close()
+		if "" == value.Val() {
+			s.AjaxErr("user does not exist")
+		}
+	}
+	logs.Debug("end get user")
+	s.AjaxOk("user exists")
 }
 func (s *IndexController) Add() {
 	if s.Ctx.Request.Method == "GET" {
